@@ -1,0 +1,5 @@
+*
+!.gitignore
+!SKILL.md
+!scripts/
+!scripts/dyk.py
