@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Fetch Wikipedia "Did You Know?" facts once per day and serve them one at a time."""
+"""Fetch Wikipedia "Did You Know?" facts and serve them one at a time."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from collections.abc import Callable
+from datetime import datetime, timezone
 import json
 import re
 from pathlib import Path
 import sys
 import time
+from typing import TypeVar
 import urllib.parse
 import urllib.request
+
+_T = TypeVar("_T")
 
 # MediaWiki API endpoint for the DYK template wikitext.
 API_URL = (
@@ -26,8 +30,8 @@ RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 
 # On-disk cache of daily hook collections.
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
-MAX_COLLECTION_DAYS = 3
-REFRESH_INTERVAL = 24 * 60 * 60
+MAX_COLLECTIONS = 10
+REFRESH_INTERVAL = 12 * 60 * 60  # DYK sets rotate every 12–24 h
 MSG_PREFIX = "Did you know that "
 MSG_SUFFIX = "?"
 MSG_URL_SEPARATOR = "\n"
@@ -42,8 +46,8 @@ def title_to_url(title: str) -> str:
     )
 
 
-def retry_with_backoff(func, retries: int = 3, backoff: float = 2.0):
-    """Retry a function with fixed backoff delay between attempts."""
+def retry_with_backoff(func: Callable[[], _T], retries: int = 3, backoff: float = 2.0) -> _T:
+    """Retry a function with exponential backoff between attempts."""
     last_exc = None
     for attempt in range(retries):
         try:
@@ -51,11 +55,12 @@ def retry_with_backoff(func, retries: int = 3, backoff: float = 2.0):
         except Exception as exc:
             last_exc = exc
             if attempt < retries - 1:
+                delay = backoff * (2 ** attempt)
                 print(
-                    f"Attempt {attempt + 1} failed ({exc}), retrying in {backoff}s...",
+                    f"Attempt {attempt + 1} failed ({exc}), retrying in {delay}s...",
                     file=sys.stderr,
                 )
-                time.sleep(backoff)
+                time.sleep(delay)
     raise RuntimeError(f"Failed after {retries} attempts: {last_exc}")
 
 
@@ -82,7 +87,11 @@ def normalize_text(text: str) -> str:
     possessive_token = "__DYK_POSSESSIVE__"
     text = text.replace("&nbsp;", " ")
     text = text.replace("{{'s}}", possessive_token)
-    text = re.sub(r"\{\{[^}]+\}\}", "", text)
+    while "{{" in text:
+        cleaned = re.sub(r"\{\{[^{}]*\}\}", "", text)
+        if cleaned == text:
+            break
+        text = cleaned
     text = text.replace("'''", "").replace("''", "")
     text = text.replace(possessive_token, "'s")
 
@@ -126,7 +135,7 @@ def fetch_wikitext(retries: int = 3, backoff: float = 2.0) -> str:
         req = urllib.request.Request(
             API_URL,
             headers={
-                "User-Agent": "daily-dyk-simplified/1.0 (https://github.com/JonathanDeamer/daily-did-you-know)"
+                "User-Agent": "did-you-know/0.1 (https://en.wikipedia.org/wiki/User:Jonathan_Deamer)"
             },
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
@@ -217,13 +226,13 @@ def save_store(store: dict) -> None:
 
 
 def trim_store(store: dict) -> None:
-    """Keep only the most recent MAX_COLLECTION_DAYS collections."""
+    """Keep only the most recent MAX_COLLECTIONS collections."""
     collections = store.setdefault("collections", [])
-    while len(collections) > MAX_COLLECTION_DAYS:
+    while len(collections) > MAX_COLLECTIONS:
         collections.pop(0)
 
 
-def ensure_today(store: dict) -> None:
+def ensure_fresh(store: dict) -> None:
     """Ensure a fresh collection exists, refreshing from the network if needed."""
     now = now_utc()
     collections = store.setdefault("collections", [])
@@ -231,12 +240,16 @@ def ensure_today(store: dict) -> None:
         return
     try:
         hooks = collect_hooks(exclude_urls=stored_urls(store))
-    except Exception:
-        # Keep serving existing cached hooks if refresh fails.
+    except Exception as exc:
+        print(f"DYK refresh failed: {exc}", file=sys.stderr)
         if collections:
             return
         raise
     if not hooks:
+        # All hooks were duplicates of ones we already have.  DYK sets
+        # rotate once or twice per day, so the template may not have
+        # changed yet.  By leaving fetched_at stale, refresh_due stays
+        # True and we re-check on the next invocation.
         return
     collections.append(
         {
@@ -246,7 +259,6 @@ def ensure_today(store: dict) -> None:
         }
     )
     trim_store(store)
-    save_store(store)
 
 
 def format_hook(hook: dict) -> str:
@@ -268,7 +280,6 @@ def next_hook(store: dict) -> str:
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
                 hook["returned"] = True
-                save_store(store)
                 return format_hook(hook)
     return "No more facts to share today; check back tomorrow!"
 
@@ -277,11 +288,13 @@ def main() -> int:
     """Script entrypoint: refresh cache if needed and print the next hook."""
     store = load_store()
     try:
-        ensure_today(store)
-    except Exception:
+        ensure_fresh(store)
+        result = next_hook(store)
+        save_store(store)
+    except Exception as exc:
+        print(f"DYK error: {exc}", file=sys.stderr)
         print("Something went wrong with the fact-fetching; please try again later.")
-        return 0
-    result = next_hook(store)
+        return 1
     print(result)
     return 0
 
