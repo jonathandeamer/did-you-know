@@ -39,11 +39,12 @@ MSG_BODY_SEPARATOR = "\n\n"
 
 
 def title_to_url(title: str) -> str:
-    """Convert a Wikipedia article title into a canonical URL."""
-    return (
+    """Convert a Wikipedia article title into a human-readable URL."""
+    encoded = (
         "https://en.wikipedia.org/wiki/"
         + urllib.parse.quote(title.replace(" ", "_"), safe="/:@")
     )
+    return urllib.parse.unquote(encoded)
 
 
 def retry_with_backoff(func: Callable[[], _T], retries: int = 3, backoff: float = 2.0) -> _T:
@@ -186,7 +187,7 @@ def stored_urls(store: dict) -> set[str]:
     urls: set[str] = set()
     for coll in store.get("collections", []):
         for hook in coll.get("hooks", []):
-            urls.update(hook.get("urls", []))
+            urls.update(urllib.parse.unquote(url) for url in hook.get("urls", []))
     return urls
 
 
@@ -264,7 +265,7 @@ def ensure_fresh(store: dict) -> None:
 def format_hook(hook: dict) -> str:
     """Format a hook with prefix, trailing '?', and one URL per line."""
     text = hook.get("text", "")
-    urls = hook.get("urls", [])
+    urls = [urllib.parse.unquote(url) for url in hook.get("urls", [])]
     message = f"{MSG_PREFIX}{text}"
     if not message.endswith(MSG_SUFFIX):
         message += MSG_SUFFIX
