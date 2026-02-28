@@ -17,6 +17,8 @@ import urllib.request
 
 _T = TypeVar("_T")
 
+VERSION = "0.1"
+
 # MediaWiki API endpoint for the DYK template wikitext.
 API_URL = (
     "https://en.wikipedia.org/w/api.php"
@@ -138,7 +140,7 @@ def fetch_wikitext(retries: int = 3, backoff: float = 2.0) -> str:
         req = urllib.request.Request(
             API_URL,
             headers={
-                "User-Agent": "did-you-know/0.1 (https://en.wikipedia.org/wiki/User:Jonathan_Deamer)"
+                "User-Agent": f"did-you-know/{VERSION} (https://en.wikipedia.org/wiki/User:Jonathan_Deamer)"
             },
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
