@@ -40,12 +40,11 @@ MSG_BODY_SEPARATOR = "\n\n"
 
 
 def title_to_url(title: str) -> str:
-    """Convert a Wikipedia article title into a human-readable URL."""
-    encoded = (
+    """Convert a Wikipedia article title into a percent-encoded URL."""
+    return (
         "https://en.wikipedia.org/wiki/"
         + urllib.parse.quote(title.replace(" ", "_"), safe="/:@")
     )
-    return urllib.parse.unquote(encoded)
 
 
 def retry_with_backoff(func: Callable[[], _T], retries: int = 3, backoff: float = 2.0) -> _T:
@@ -162,7 +161,7 @@ def collect_hooks(exclude_urls: set[str] | None = None) -> list[dict]:
     if not section:
         return []
     hooks: list[dict] = []
-    seen_urls: set[str] = set(exclude_urls or set())
+    seen_urls: set[str] = set(urllib.parse.unquote(url) for url in (exclude_urls or set()))
     for raw in section.splitlines():
         raw = raw.strip()
         match = RE_HOOK_LINE.match(raw)
@@ -176,9 +175,9 @@ def collect_hooks(exclude_urls: set[str] | None = None) -> list[dict]:
         if not normalized:
             continue
         urls = [title_to_url(title) for title in titles]
-        if any(url in seen_urls for url in urls):
+        if any(urllib.parse.unquote(url) in seen_urls for url in urls):
             continue
-        seen_urls.update(urls)
+        seen_urls.update(urllib.parse.unquote(url) for url in urls)
         hooks.append({"text": normalized, "urls": urls, "returned": False})
     return hooks
 
