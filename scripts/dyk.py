@@ -216,8 +216,6 @@ def refresh_due(store: dict, now: datetime) -> bool:
 
 def load_store() -> dict:
     """Load the on-disk cache, returning an empty structure if missing/invalid."""
-    if not DATA_PATH.exists():
-        return {"collections": []}
     try:
         text = DATA_PATH.read_text(encoding="utf-8")
         data = json.loads(text)
@@ -232,8 +230,12 @@ def save_store(store: dict) -> None:
     """Persist the cache to disk atomically via write-to-temp + rename."""
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = DATA_PATH.with_suffix(".tmp")
-    tmp_path.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp_path.rename(DATA_PATH)
+    try:
+        tmp_path.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp_path.rename(DATA_PATH)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
 
 def trim_store(store: dict) -> None:
