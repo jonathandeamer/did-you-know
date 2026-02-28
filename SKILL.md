@@ -24,7 +24,7 @@ Did you know that the shortest war in history lasted 38 minutes?
 https://en.wikipedia.org/wiki/Anglo-Zanzibar_War
 ```
 
-If no new hooks remain:
+If no new facts remain:
 
 ```
 No more facts to share today; check back tomorrow!
