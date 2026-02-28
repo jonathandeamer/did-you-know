@@ -273,7 +273,7 @@ def ensure_fresh(store: dict) -> None:
         # All hooks were duplicates of ones we already have.  DYK sets
         # rotate once or twice per day, so the template may not have
         # changed yet.  By leaving fetched_at stale, refresh_due stays
-        # True and we re-check on the next invocation.
+        # True and we re-check on the next invocation after cooldown.
         return
     collections.append(
         {
