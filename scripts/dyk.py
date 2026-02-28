@@ -32,6 +32,7 @@ RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
 MAX_COLLECTIONS = 10
 REFRESH_INTERVAL = 12 * 60 * 60  # DYK sets rotate every 12–24 h
+CHECK_COOLDOWN = 5 * 60  # min seconds between API calls regardless of fetch status
 MSG_PREFIX = "Did you know that "
 MSG_SUFFIX = "?"
 MSG_URL_SEPARATOR = "\n"
@@ -192,7 +193,13 @@ def stored_urls(store: dict) -> set[str]:
 
 
 def refresh_due(store: dict, now: datetime) -> bool:
-    """Return True if the last fetch is older than REFRESH_INTERVAL."""
+    """Return True if we should fetch a fresh set of hooks."""
+    last_checked_at = store.get("last_checked_at")
+    if last_checked_at:
+        parsed = parse_iso(last_checked_at)
+        if parsed is not None and (now - parsed).total_seconds() < CHECK_COOLDOWN:
+            return False  # cooldown active — don't hammer the API
+
     collections = store.get("collections", [])
     if not collections:
         return True
@@ -243,9 +250,11 @@ def ensure_fresh(store: dict) -> None:
         hooks = collect_hooks(exclude_urls=stored_urls(store))
     except Exception as exc:
         print(f"DYK refresh failed: {exc}", file=sys.stderr)
+        store["last_checked_at"] = to_iso_z(now)  # record the attempt
         if collections:
             return
         raise
+    store["last_checked_at"] = to_iso_z(now)
     if not hooks:
         # All hooks were duplicates of ones we already have.  DYK sets
         # rotate once or twice per day, so the template may not have
