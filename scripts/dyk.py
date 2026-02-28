@@ -304,12 +304,16 @@ def main() -> int:
     store = load_store()
     try:
         ensure_fresh(store)
-        result = next_hook(store)
-        save_store(store)
     except Exception as exc:
         print(f"DYK error: {exc}", file=sys.stderr)
+        try:
+            save_store(store)   # persist last_checked_at for cooldown
+        except Exception:
+            pass                # best-effort — don't mask the original error
         print("Something went wrong with the fact-fetching; please try again later.")
         return 1
+    result = next_hook(store)
+    save_store(store)
     print(result)
     return 0
 
