@@ -227,9 +227,11 @@ def load_store() -> dict:
 
 
 def save_store(store: dict) -> None:
-    """Persist the cache to disk."""
+    """Persist the cache to disk atomically via write-to-temp + rename."""
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DATA_PATH.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path = DATA_PATH.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path.rename(DATA_PATH)
 
 
 def trim_store(store: dict) -> None:
