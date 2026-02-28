@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
+import html
 import json
 import re
 from pathlib import Path
@@ -104,6 +105,7 @@ def normalize_text(text: str) -> str:
     text = RE_LINK.sub(replace_link, text)
     text = re.sub(r"\s*\([^)]*pictured[^)]*\)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip()
+    text = html.unescape(text)
     return text
 
 
