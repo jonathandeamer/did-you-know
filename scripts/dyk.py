@@ -108,6 +108,7 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"\s*\([^)]*pictured[^)]*\)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip()
     text = html.unescape(text)
+    text = text.replace("\xa0", " ")  # normalise non-breaking spaces from &#160; etc.
     return text
 
 
