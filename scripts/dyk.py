@@ -31,11 +31,15 @@ RE_HOOK_LINE = re.compile(r"^\*\s*\.{3}\s*that\s+(.*)$", re.IGNORECASE)
 RE_LINK = re.compile(r"\[\[([^|\]]+)(?:\|([^\]]+))?\]\]")
 RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 
-# On-disk cache of daily hook collections.
+# On-disk cache location and retention.
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
 MAX_COLLECTIONS = 10
+
+# Refresh schedule: how often to hit the API.
 REFRESH_INTERVAL = 12 * 60 * 60  # DYK sets rotate every 12–24 h
 CHECK_COOLDOWN = 5 * 60  # min seconds between API calls regardless of fetch status
+
+# Output format constants.
 MSG_PREFIX = "Did you know that "
 MSG_SUFFIX = "?"
 MSG_URL_SEPARATOR = "\n"
@@ -46,7 +50,7 @@ def title_to_url(title: str) -> str:
     """Convert a Wikipedia article title into a percent-encoded URL."""
     return (
         "https://en.wikipedia.org/wiki/"
-        + urllib.parse.quote(title.replace(" ", "_"), safe="/:@")
+        + urllib.parse.quote(title.replace(" ", "_"), safe="/:")  # / for subpages, : for namespaces
     )
 
 
@@ -167,6 +171,7 @@ def collect_hooks(exclude_urls: set[str] | None = None) -> list[dict]:
     if not section:
         return []
     hooks: list[dict] = []
+    # Unquote for comparison so encoded and plain forms (e.g. C%2B%2B vs C++) match.
     seen_urls: set[str] = set(urllib.parse.unquote(url) for url in (exclude_urls or set()))
     for raw in section.splitlines():
         raw = raw.strip()
@@ -293,7 +298,7 @@ def format_hook(hook: dict) -> str:
 
 
 def next_hook(store: dict) -> str:
-    """Return the next unserved hook and mark it as returned."""
+    """Return the next unserved hook and mark it as returned, or the exhausted message."""
     collections = store.get("collections", [])
     for coll in reversed(collections):
         for hook in coll.get("hooks", []):
