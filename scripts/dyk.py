@@ -224,7 +224,7 @@ def load_store() -> dict:
         if not isinstance(data, dict) or "collections" not in data:
             return {"collections": []}
         return data
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, OSError):
         return {"collections": []}
 
 
