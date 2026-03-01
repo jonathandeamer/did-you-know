@@ -93,6 +93,7 @@ def parse_iso(ts: str) -> datetime | None:
 def normalize_text(text: str) -> str:
     """Strip wiki markup and normalize whitespace for display."""
     possessive_token = "__DYK_POSSESSIVE__"
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
     text = text.replace("&nbsp;", " ")  # before whitespace-collapse; html.unescape gives \xa0 which \s+ misses
     text = text.replace("{{'s}}", possessive_token)
     while "{{" in text:
@@ -100,6 +101,7 @@ def normalize_text(text: str) -> str:
         if cleaned == text:
             break
         text = cleaned
+    text = re.sub(r"\[\[([^|\]]+)\|\s*\]\]", r"[[\1]]", text)
     text = text.replace("'''", "").replace("''", "")
     text = text.replace(possessive_token, "'s")
 
