@@ -102,7 +102,7 @@ def normalize_text(text: str) -> str:
             break
         text = cleaned
     text = re.sub(r"\[\[([^|\]]+)\|\s*\]\]", r"[[\1]]", text)
-    text = text.replace("'''", "").replace("''", "")
+    text = re.sub(r"'{2,}", "", text)
     text = text.replace(possessive_token, "'s")
 
     def replace_link(match: re.Match) -> str:
