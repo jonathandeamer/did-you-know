@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Unit tests for scripts/dyk.py."""
+"""Unit tests for scripts/dyk.py.
+
+Run with: python3 -m pytest tests/ -v
+Requires: pip install pytest
+"""
 
 import json
 import sys
