@@ -19,9 +19,9 @@ python3 {baseDir}/scripts/dyk.py
 Prints one fact:
 
 ```
-Did you know that the shortest war in history lasted 38 minutes?
+Did you know that heavy-metal guitarist Kiki Wong played drums for Taylor Swift before joining the Smashing Pumpkins?
 
-https://en.wikipedia.org/wiki/Anglo-Zanzibar_War
+https://en.wikipedia.org/wiki/Kiki_Wong
 ```
 
 If no new facts remain:
