@@ -196,8 +196,10 @@ def collect_hooks(exclude_urls: set[str] | None = None) -> list[dict]:
 
 
 def stored_urls(store: dict) -> set[str]:
-    """Collect all URLs from cached hooks across stored collections."""
-    urls: set[str] = set()
+    """Collect all URLs seen across stored and trimmed collections."""
+    urls: set[str] = set(
+        urllib.parse.unquote(url) for url in store.get("seen_urls", [])
+    )
     for coll in store.get("collections", []):
         for hook in coll.get("hooks", []):
             urls.update(urllib.parse.unquote(url) for url in hook.get("urls", []))
