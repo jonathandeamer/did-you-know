@@ -279,6 +279,17 @@ def ensure_fresh(store: dict) -> None:
         # changed yet.  By leaving fetched_at stale, refresh_due stays
         # True and we re-check on the next invocation after cooldown.
         return
+    # Backfill seen_urls from existing collections before trimming so that
+    # legacy caches (written before this field existed) don't lose history
+    # when trim_store removes the oldest entry.
+    seen = store.setdefault("seen_urls", [])
+    seen_set = set(seen)
+    for col in collections:
+        for hook in col.get("hooks", []):
+            for url in hook.get("urls", []):
+                if url not in seen_set:
+                    seen.append(url)
+                    seen_set.add(url)
     collections.append(
         {
             "date": now.date().isoformat(),
@@ -286,6 +297,13 @@ def ensure_fresh(store: dict) -> None:
             "hooks": hooks,
         }
     )
+    # Accumulate the new hooks' URLs in the persistent history so trim_store
+    # cannot cause already-seen hooks to be re-fetched from Wikipedia.
+    for hook in hooks:
+        for url in hook.get("urls", []):
+            if url not in seen_set:
+                seen.append(url)
+                seen_set.add(url)
     trim_store(store)
 
 
