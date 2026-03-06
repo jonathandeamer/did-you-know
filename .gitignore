@@ -4,6 +4,7 @@
 # Project root files
 !.gitattributes
 !.gitignore
+!LICENSE
 !SKILL.md
 
 # Source
