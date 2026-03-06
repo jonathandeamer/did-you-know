@@ -2,6 +2,7 @@
 *
 
 # Project root files
+!.gitattributes
 !.gitignore
 !SKILL.md
 
