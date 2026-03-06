@@ -4,6 +4,7 @@
 # Project root files
 !.gitattributes
 !.gitignore
+!CONTRIBUTING.md
 !LICENSE
 !SKILL.md
 
