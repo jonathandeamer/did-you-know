@@ -232,8 +232,10 @@ def load_store() -> dict:
     try:
         text = DATA_PATH.read_text(encoding="utf-8")
         data = json.loads(text)
-        if not isinstance(data, dict) or "collections" not in data:
+        if not isinstance(data, dict) or not isinstance(data.get("collections"), list):
             return {"collections": []}
+        if not isinstance(data.get("seen_urls", []), list):
+            data["seen_urls"] = []
         return data
     except (json.JSONDecodeError, OSError):
         return {"collections": []}
