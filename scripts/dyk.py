@@ -17,7 +17,7 @@ import urllib.request
 
 _T = TypeVar("_T")
 
-VERSION = "0.1"
+VERSION = "0.1.1"
 
 # MediaWiki API endpoint for the DYK template wikitext.
 API_URL = (
