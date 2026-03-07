@@ -7,12 +7,12 @@ metadata: {"openclaw":{"emoji":"❓","requires":{"bins":["python3"]}}}
 
 # Did You Know
 
-Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) section highlights well-sourced facts from recently created or expanded articles. It's curated and refreshed at least daily by volunteers. A never-ending supply of conversation starters!
+Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) section highlights well-sourced facts from recently created or expanded articles. It's curated and refreshed at least daily by volunteers. Schedule it to run regularly using cron for a steady supply of conversation starters!
 
 
 ## Serving a fact
 
-To share the next fact from the queue:
+When invoked, the default behaviour is to share the next fact from the queue:
 
 ```bash
 python3 {baseDir}/scripts/dyk.py
@@ -64,17 +64,23 @@ When asked to refresh the DYK cache and tag new hooks:
 
 1. Run: `python3 {baseDir}/scripts/fetch_hooks.py`
 
+   This fetches the latest hooks and stores them in `~/.openclaw/dyk-facts.json` with `"tags": null` for new entries.
+
    If it exits non-zero, stop and report the error. Do not continue.
 
 2. Read `~/.openclaw/dyk-facts.json` and find all hooks where `"tags"` is `null`.
 
    If there are none, stop — nothing to tag.
 
-3. For each untagged hook, classify it using:
+3. For each untagged hook, assign tags using:
    - Tagging guide: `{baseDir}/tagging/tagging-guide.md`
    - Vocabulary: `{baseDir}/tagging/tags.csv`
 
-   Produce a JSON array and write it to a temporary file:
+   Output requirements:
+   - Use only tag values defined in `tags.csv`
+   - Write valid JSON only — no comments or explanations
+   - Collect results into a single JSON array
+   - Write the array to a temporary file such as `/tmp/dyk-tags.json`
 
    ```bash
    # Example array written to /tmp/dyk-tags.json
