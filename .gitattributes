@@ -1,5 +1,5 @@
 # Exclude development scaffolding from release archives (GitHub zip/tarball).
-# Only SKILL.md and scripts/dyk.py are needed at runtime.
+# Runtime files: SKILL.md, scripts/dyk.py, scripts/helpers.py, scripts/serve_hook.py
 .gitattributes  export-ignore
 .gitignore      export-ignore
 CONTRIBUTING.md export-ignore
