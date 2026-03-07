@@ -11,6 +11,8 @@
 # Source
 !scripts/
 !scripts/dyk.py
+!scripts/helpers.py
+!scripts/serve_hook.py
 
 # Tests
 !tests/
