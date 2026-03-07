@@ -262,6 +262,84 @@ class TestNextHook:
         result = serve_hook.next_hook({"collections": []})
         assert "No more facts to share today" in result
 
+    def test_serves_highest_scored_hook_first(self):
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "history fact", "urls": [], "returned": False,
+                         "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
+                        {"text": "science fact", "urls": [], "returned": False,
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        result = serve_hook.next_hook(store, prefs)
+        assert "science fact" in result
+
+    def test_tiebreak_most_recent_collection_first(self):
+        store = {
+            "collections": [
+                {"date": "2026-02-23", "fetched_at": "2026-02-23T12:00:00Z",
+                 "hooks": [{"text": "older fact", "urls": [], "returned": False, "tags": None}]},
+                {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
+                 "hooks": [{"text": "newer fact", "urls": [], "returned": False, "tags": None}]},
+            ]
+        }
+        result = serve_hook.next_hook(store, {})
+        assert "newer fact" in result
+
+    def test_tiebreak_within_same_collection_is_random(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "hook A", "urls": [], "returned": False, "tags": None},
+                        {"text": "hook B", "urls": [], "returned": False, "tags": None},
+                    ],
+                }
+            ]
+        }
+        seen = set()
+        for _ in range(50):
+            for h in store["collections"][0]["hooks"]:
+                h["returned"] = False
+            result = serve_hook.next_hook(store, {})
+            seen.add("A" if "hook A" in result else "B")
+        assert seen == {"A", "B"}
+
+    def test_negative_scored_hooks_still_served(self):
+        prefs = {"domain": {"history": -1}, "tone": {}}
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "history fact", "urls": [], "returned": False,
+                         "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        result = serve_hook.next_hook(store, prefs)
+        assert "history fact" in result
+
+    def test_empty_prefs_serves_most_recent_first(self):
+        store = {
+            "collections": [
+                {"date": "2026-02-23", "fetched_at": "2026-02-23T12:00:00Z",
+                 "hooks": [{"text": "old fact", "urls": [], "returned": False}]},
+                {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
+                 "hooks": [{"text": "new fact", "urls": [], "returned": False}]},
+            ]
+        }
+        result = serve_hook.next_hook(store, {})
+        assert "new fact" in result
+
 
 class TestMain:
     def test_saves_store_after_fetch_failure_with_no_cache(self, monkeypatch, tmp_path, capsys):
