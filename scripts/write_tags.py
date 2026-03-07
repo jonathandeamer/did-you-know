@@ -66,14 +66,26 @@ def apply_tags(store: dict, entries: list[dict], vocab: dict[str, set[str]]) -> 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Merge tags into DYK cache.")
-    parser.add_argument("--json", required=True, dest="json_input",
-                        help="JSON array of tagged entries")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--json", dest="json_input",
+                        help="JSON array of tagged entries (inline)")
+    source.add_argument("--json-file", dest="json_file",
+                        help="Path to JSON file containing tagged entries array")
     parser.add_argument("--vocabulary", default=str(TAGS_CSV),
                         help="Path to tags.csv vocabulary file")
     args = parser.parse_args(argv)
 
+    if args.json_file is not None:
+        try:
+            raw = Path(args.json_file).read_text(encoding="utf-8")
+        except OSError as exc:
+            print(f"Cannot read JSON file: {exc}", file=sys.stderr)
+            return 1
+    else:
+        raw = args.json_input
+
     try:
-        entries = json.loads(args.json_input)
+        entries = json.loads(raw)
     except json.JSONDecodeError as exc:
         print(f"Invalid JSON: {exc}", file=sys.stderr)
         return 1

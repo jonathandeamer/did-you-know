@@ -185,3 +185,43 @@ def test_main_merges_and_saves_on_success(tmp_path, monkeypatch):
     assert result == 0
     saved = json.loads((tmp_path / "store.json").read_text())
     assert saved["collections"][0]["hooks"][0]["tags"]["domain"] == ["science"]
+
+
+# ---------------------------------------------------------------------------
+# main() --json-file option
+# ---------------------------------------------------------------------------
+
+def test_main_json_file_reads_entries_from_file(tmp_path, monkeypatch):
+    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    store = _make_store()
+    (tmp_path / "store.json").write_text(json.dumps(store), encoding="utf-8")
+    entries_file = tmp_path / "entries.json"
+    entries_file.write_text(json.dumps([_VALID_ENTRY]), encoding="utf-8")
+    result = main([
+        "--json-file", str(entries_file),
+        "--vocabulary", str(_make_vocab_csv(tmp_path)),
+    ])
+    assert result == 0
+    saved = json.loads((tmp_path / "store.json").read_text())
+    assert saved["collections"][0]["hooks"][0]["tags"]["domain"] == ["science"]
+
+
+def test_main_json_file_missing_exits_1(tmp_path, monkeypatch):
+    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    result = main([
+        "--json-file", str(tmp_path / "nonexistent.json"),
+        "--vocabulary", str(_make_vocab_csv(tmp_path)),
+    ])
+    assert result == 1
+
+
+def test_main_json_and_json_file_are_mutually_exclusive(tmp_path, monkeypatch):
+    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    entries_file = tmp_path / "entries.json"
+    entries_file.write_text(json.dumps([_VALID_ENTRY]), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        main([
+            "--json", json.dumps([_VALID_ENTRY]),
+            "--json-file", str(entries_file),
+            "--vocabulary", str(_make_vocab_csv(tmp_path)),
+        ])
