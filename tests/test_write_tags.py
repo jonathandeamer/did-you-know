@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-import dyk
+import helpers
 
 import write_tags
 from write_tags import apply_tags, load_vocabulary, main
@@ -155,13 +155,13 @@ def test_no_match_for_url_is_silently_skipped(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_main_rejects_malformed_json(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     result = main(["--json", "{bad json}", "--vocabulary", str(_make_vocab_csv(tmp_path))])
     assert result == 1
 
 
 def test_main_rejects_unknown_domain_exits_1_and_leaves_store_unchanged(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     store = _make_store()
     (tmp_path / "store.json").write_text(json.dumps(store), encoding="utf-8")
     bad_entry = {**_VALID_ENTRY, "domain": ["nonexistent"]}
@@ -175,7 +175,7 @@ def test_main_rejects_unknown_domain_exits_1_and_leaves_store_unchanged(tmp_path
 
 
 def test_main_merges_and_saves_on_success(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     store = _make_store()
     (tmp_path / "store.json").write_text(json.dumps(store), encoding="utf-8")
     result = main([
@@ -192,7 +192,7 @@ def test_main_merges_and_saves_on_success(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_main_json_file_reads_entries_from_file(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     store = _make_store()
     (tmp_path / "store.json").write_text(json.dumps(store), encoding="utf-8")
     entries_file = tmp_path / "entries.json"
@@ -207,7 +207,7 @@ def test_main_json_file_reads_entries_from_file(tmp_path, monkeypatch):
 
 
 def test_main_json_file_missing_exits_1(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     result = main([
         "--json-file", str(tmp_path / "nonexistent.json"),
         "--vocabulary", str(_make_vocab_csv(tmp_path)),
@@ -216,7 +216,7 @@ def test_main_json_file_missing_exits_1(tmp_path, monkeypatch):
 
 
 def test_main_json_and_json_file_are_mutually_exclusive(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     entries_file = tmp_path / "entries.json"
     entries_file.write_text(json.dumps([_VALID_ENTRY]), encoding="utf-8")
     with pytest.raises(SystemExit):

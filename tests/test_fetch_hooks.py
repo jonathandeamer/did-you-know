@@ -90,7 +90,7 @@ def test_fetch_and_stage_does_not_modify_existing_collections(monkeypatch):
 
 
 def test_main_exits_zero_on_success(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     monkeypatch.setattr("fetch_hooks.collect_hooks",
                         lambda **kw: [dict(_SAMPLE_HOOK)])
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
@@ -101,7 +101,7 @@ def test_main_exits_zero_on_success(tmp_path, monkeypatch):
 
 
 def test_main_exits_one_on_network_failure(tmp_path, monkeypatch):
-    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
 
     def _fail(**kw):

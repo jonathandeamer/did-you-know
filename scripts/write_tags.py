@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dyk import load_store, save_store
+from helpers import load_store, save_store
 
 TAGS_CSV = Path(__file__).parent.parent / "tagging" / "tags.csv"
 

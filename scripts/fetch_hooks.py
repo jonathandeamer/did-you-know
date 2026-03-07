@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dyk import (
+from helpers import (
     collect_hooks,
     load_store,
     now_utc,
