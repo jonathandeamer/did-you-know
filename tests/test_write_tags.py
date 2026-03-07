@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 import dyk
 
-# These imports will fail until write_tags.py exists — that is expected.
 import write_tags
 from write_tags import apply_tags, load_vocabulary, main
 
