@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from dyk import load_store, save_store
 
-TAGS_CSV = Path(__file__).parent.parent / "references" / "tags.csv"
+TAGS_CSV = Path(__file__).parent.parent / "tagging" / "tags.csv"
 
 
 def load_vocabulary(path: Path) -> dict[str, set[str]]:

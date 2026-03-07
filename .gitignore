@@ -22,7 +22,7 @@
 !tests/test_fetch_hooks.py
 !tests/test_write_tags.py
 
-# References
-!references/
-!references/tagging-guide.md
-!references/tags.csv
+# Tagging
+!tagging/
+!tagging/tagging-guide.md
+!tagging/tags.csv

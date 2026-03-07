@@ -71,8 +71,8 @@ When asked to refresh the DYK cache and tag new hooks:
    If there are none, stop — nothing to tag.
 
 3. For each untagged hook, classify it using:
-   - Tagging guide: `{baseDir}/references/tagging-guide.md`
-   - Vocabulary: `{baseDir}/references/tags.csv`
+   - Tagging guide: `{baseDir}/tagging/tagging-guide.md`
+   - Vocabulary: `{baseDir}/tagging/tags.csv`
 
    Produce a JSON array and write it to a temporary file:
 
