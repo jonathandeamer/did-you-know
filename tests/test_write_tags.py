@@ -1,5 +1,9 @@
-# tests/test_write_tags.py
-"""Tests for scripts/write_tags.py."""
+#!/usr/bin/env python3
+"""Unit tests for scripts/write_tags.py.
+
+Run with: python3 -m pytest tests/ -v
+Requires: pip install pytest
+"""
 import csv
 import json
 import sys

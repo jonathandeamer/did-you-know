@@ -1,5 +1,9 @@
-# tests/test_fetch_hooks.py
-"""Tests for scripts/fetch_hooks.py — fetch_and_stage() function."""
+#!/usr/bin/env python3
+"""Unit tests for scripts/fetch_hooks.py.
+
+Run with: python3 -m pytest tests/ -v
+Requires: pip install pytest
+"""
 import json
 import sys
 from datetime import datetime, timezone
