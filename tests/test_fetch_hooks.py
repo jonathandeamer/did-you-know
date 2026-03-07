@@ -1,5 +1,6 @@
 # tests/test_fetch_hooks.py
 """Tests for scripts/fetch_hooks.py — fetch_and_stage() function."""
+import json
 import sys
 from pathlib import Path
 
@@ -86,3 +87,25 @@ def test_fetch_and_stage_does_not_modify_existing_collections(monkeypatch):
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
     fetch_and_stage(store)
     assert store["collections"][0]["hooks"][0] == existing_hook
+
+
+def test_main_exits_zero_on_success(tmp_path, monkeypatch):
+    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("fetch_hooks.collect_hooks",
+                        lambda **kw: [dict(_SAMPLE_HOOK)])
+    monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
+    assert fetch_hooks.main() == 0
+    saved = json.loads((tmp_path / "store.json").read_text())
+    assert len(saved["collections"]) == 1
+    assert saved["collections"][0]["hooks"][0]["tags"] is None
+
+
+def test_main_exits_one_on_network_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr("dyk.DATA_PATH", tmp_path / "store.json")
+    monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
+
+    def _fail(**kw):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("fetch_hooks.collect_hooks", _fail)
+    assert fetch_hooks.main() == 1
