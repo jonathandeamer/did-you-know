@@ -47,7 +47,14 @@ MSG_BODY_SEPARATOR = "\n\n"
 
 
 def title_to_url(title: str) -> str:
-    """Convert a Wikipedia article title into a percent-encoded URL."""
+    """Convert a Wikipedia article title into a percent-encoded URL.
+
+    Note: titles taken verbatim from mid-sentence wikilinks may start with a
+    lowercase letter (e.g. 'net-filter coffee' instead of 'Net-filter coffee').
+    The correct fix is to resolve display titles via the MediaWiki API, but that
+    requires extra API calls. Tracked in:
+    https://github.com/jonathandeamer/did-you-know/issues/1
+    """
     return (
         "https://en.wikipedia.org/wiki/"
         + urllib.parse.quote(title.replace(" ", "_"), safe="/:")  # / for subpages, : for namespaces
