@@ -4,8 +4,10 @@
 # Project root files
 !.gitattributes
 !.gitignore
+!.gitmessage
 !CONTRIBUTING.md
 !LICENSE
+!pyproject.toml
 !SKILL.md
 
 # Git hooks

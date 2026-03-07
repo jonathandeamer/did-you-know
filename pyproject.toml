@@ -1,0 +1,9 @@
+[project]
+name = "did-you-know"
+version = "0.1.1"
+description = "Wikipedia DYK facts as an OpenClaw skill"
+requires-python = ">=3.8"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
