@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Serve the next DYK hook, refreshing the cache if needed."""
+
+from __future__ import annotations
+
+import sys
+import urllib.parse
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from helpers import (
+    collect_hooks,
+    load_store,
+    now_utc,
+    save_store,
+    stored_urls,
+    to_iso_z,
+    trim_store,
+    refresh_due,
+)
+
+# Output format constants.
+MSG_PREFIX = "Did you know that "
+MSG_SUFFIX = "?"
+MSG_URL_SEPARATOR = "\n"
+MSG_BODY_SEPARATOR = "\n\n"
+
+
+def ensure_fresh(store: dict) -> None:
+    """Ensure a fresh collection exists, refreshing from the network if needed."""
+    now = now_utc()
+    collections = store.setdefault("collections", [])
+    if not refresh_due(store, now):
+        return
+    try:
+        hooks = collect_hooks(exclude_urls=stored_urls(store))
+    except Exception as exc:
+        print(f"DYK refresh failed: {exc}", file=sys.stderr)
+        store["last_checked_at"] = to_iso_z(now)
+        if collections:
+            return
+        raise
+    store["last_checked_at"] = to_iso_z(now)
+    if not hooks:
+        # All hooks were duplicates of ones we already have.  DYK sets
+        # rotate once or twice per day, so the template may not have
+        # changed yet.  By leaving fetched_at stale, refresh_due stays
+        # True and we re-check on the next invocation after cooldown.
+        return
+    # Backfill seen_urls from existing collections before trimming so that
+    # legacy caches (written before this field existed) don't lose history
+    # when trim_store removes the oldest entry.
+    seen = store.setdefault("seen_urls", [])
+    seen_set = set(seen)
+    for col in collections:
+        for hook in col.get("hooks", []):
+            for url in hook.get("urls", []):
+                if url not in seen_set:
+                    seen.append(url)
+                    seen_set.add(url)
+    collections.append(
+        {
+            "date": now.date().isoformat(),
+            "fetched_at": to_iso_z(now),
+            "hooks": hooks,
+        }
+    )
+    # Accumulate the new hooks' URLs in the persistent history so trim_store
+    # cannot cause already-seen hooks to be re-fetched from Wikipedia.
+    for hook in hooks:
+        for url in hook.get("urls", []):
+            if url not in seen_set:
+                seen.append(url)
+                seen_set.add(url)
+    trim_store(store)
+
+
+def format_hook(hook: dict) -> str:
+    """Format a hook with prefix, trailing '?', and one URL per line."""
+    text = hook.get("text", "")
+    urls = [urllib.parse.unquote(url) for url in hook.get("urls", [])]
+    message = f"{MSG_PREFIX}{text}"
+    if not message.endswith(MSG_SUFFIX):
+        message += MSG_SUFFIX
+    if not urls:
+        return message
+    return message + MSG_BODY_SEPARATOR + MSG_URL_SEPARATOR.join(urls)
+
+
+def next_hook(store: dict) -> str:
+    """Return the next unserved hook and mark it as returned, or the exhausted message."""
+    collections = store.get("collections", [])
+    for coll in reversed(collections):
+        for hook in coll.get("hooks", []):
+            if not hook.get("returned"):
+                hook["returned"] = True
+                return format_hook(hook)
+    return "No more facts to share today; check back tomorrow!"
+
+
+def main() -> int:
+    """Script entrypoint: refresh cache if needed and print the next hook."""
+    store = load_store()
+    try:
+        ensure_fresh(store)
+    except Exception as exc:
+        print(f"DYK error: {exc}", file=sys.stderr)
+        try:
+            save_store(store)
+        except Exception:
+            pass
+        print("Something went wrong with the fact-fetching; please try again later.")
+        return 1
+    result = next_hook(store)
+    save_store(store)
+    print(result)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
