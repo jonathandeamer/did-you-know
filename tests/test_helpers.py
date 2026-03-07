@@ -387,18 +387,80 @@ class TestStoreHelpers:
         assert result["collections"] == []
         assert result.get("seen_urls") == []
 
-    def test_trim_store_keeps_max_days(self):
+
+
+class TestTrimStore:
+    def test_drops_collections_older_than_max_age(self):
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
         store = {
             "collections": [
-                {"date": f"2026-02-{i:02d}", "hooks": []}
-                for i in range(15, 30)  # 15 collections to exceed MAX_COLLECTIONS=10
+                {"fetched_at": "2026-03-01T12:00:00Z", "hooks": []},  # 9 days ago — drop
+                {"fetched_at": "2026-03-02T12:00:00Z", "hooks": []},  # 8 days ago — drop (boundary)
+                {"fetched_at": "2026-03-03T12:00:00Z", "hooks": []},  # 7 days ago — keep
+                {"fetched_at": "2026-03-10T10:00:00Z", "hooks": []},  # today — keep
             ]
         }
-        helpers.trim_store(store)
-        # Should keep only the last 10
-        assert len(store["collections"]) == 10
-        assert store["collections"][0]["date"] == "2026-02-20"
-        assert store["collections"][-1]["date"] == "2026-02-29"
+        helpers.trim_store(store, now)
+        assert len(store["collections"]) == 2
+        assert store["collections"][0]["fetched_at"] == "2026-03-03T12:00:00Z"
+        assert store["collections"][1]["fetched_at"] == "2026-03-10T10:00:00Z"
+
+    def test_drops_collection_at_exact_boundary(self):
+        # A collection fetched exactly 8 days ago must be dropped.
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
+        store = {
+            "collections": [
+                {"fetched_at": "2026-03-02T12:00:00Z", "hooks": []},  # exactly 8 days ago
+            ]
+        }
+        helpers.trim_store(store, now)
+        assert store["collections"] == []
+
+    def test_keeps_collection_just_inside_boundary(self):
+        # A collection fetched 1 second under 8 days ago must be kept.
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
+        store = {
+            "collections": [
+                {"fetched_at": "2026-03-02T12:00:01Z", "hooks": []},  # 7d 23h 59m 59s ago
+            ]
+        }
+        helpers.trim_store(store, now)
+        assert len(store["collections"]) == 1
+
+    def test_drops_collection_with_missing_fetched_at(self):
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
+        store = {
+            "collections": [
+                {"hooks": []},  # no fetched_at — treat as expired
+                {"fetched_at": "2026-03-09T12:00:00Z", "hooks": []},  # 1 day ago — keep
+            ]
+        }
+        helpers.trim_store(store, now)
+        assert len(store["collections"]) == 1
+        assert store["collections"][0]["fetched_at"] == "2026-03-09T12:00:00Z"
+
+    def test_keeps_all_when_all_recent(self):
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
+        store = {
+            "collections": [
+                {"fetched_at": "2026-03-08T12:00:00Z", "hooks": []},
+                {"fetched_at": "2026-03-09T12:00:00Z", "hooks": []},
+                {"fetched_at": "2026-03-10T10:00:00Z", "hooks": []},
+            ]
+        }
+        helpers.trim_store(store, now)
+        assert len(store["collections"]) == 3
+
+    def test_empties_store_when_all_expired(self):
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
+        store = {
+            "collections": [
+                {"fetched_at": "2026-02-01T12:00:00Z", "hooks": []},
+                {"fetched_at": "2026-02-15T12:00:00Z", "hooks": []},
+            ]
+        }
+        helpers.trim_store(store, now)
+        assert store["collections"] == []
 
 
 class TestSaveStore:

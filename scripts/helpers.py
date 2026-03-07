@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import html
 import json
 import re
@@ -33,7 +33,7 @@ RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 
 # On-disk cache location and retention.
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
-MAX_COLLECTIONS = 10
+MAX_HOOK_AGE_DAYS = 8  # drop collections fetched this many days ago or more
 
 # Refresh schedule: how often to hit the API.
 REFRESH_INTERVAL = 12 * 60 * 60  # DYK sets rotate every 12–24 h
@@ -253,8 +253,11 @@ def save_store(store: dict) -> None:
         raise
 
 
-def trim_store(store: dict) -> None:
-    """Keep only the most recent MAX_COLLECTIONS collections."""
+def trim_store(store: dict, now: datetime) -> None:
+    """Drop collections fetched MAX_HOOK_AGE_DAYS or more days ago."""
+    cutoff = now - timedelta(days=MAX_HOOK_AGE_DAYS)
     collections = store.setdefault("collections", [])
-    while len(collections) > MAX_COLLECTIONS:
-        collections.pop(0)
+    store["collections"] = [
+        col for col in collections
+        if (ts := parse_iso(col.get("fetched_at", ""))) is not None and ts > cutoff
+    ]
