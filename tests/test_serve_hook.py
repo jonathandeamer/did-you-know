@@ -248,6 +248,10 @@ class TestNextHook:
         result = serve_hook.next_hook(store)
         assert result == "Did you know that old fact?"
 
+    def test_empty_collections_returns_no_more_message(self):
+        result = serve_hook.next_hook({"collections": []})
+        assert "No more facts to share today" in result
+
 
 class TestMain:
     def test_saves_store_after_fetch_failure_with_no_cache(self, monkeypatch, tmp_path, capsys):

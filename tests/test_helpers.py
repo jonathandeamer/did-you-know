@@ -129,6 +129,58 @@ class TestTitleToUrl:
         assert url == "https://en.wikipedia.org/wiki/C%2B%2B_%28programming_language%29"
 
 
+class TestParseIso:
+    def test_parses_z_suffix(self):
+        result = helpers.parse_iso("2026-02-24T12:00:00Z")
+        assert result == datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+
+    def test_parses_offset_suffix(self):
+        result = helpers.parse_iso("2026-02-24T12:00:00+00:00")
+        assert result == datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+
+    def test_returns_none_for_invalid_string(self):
+        assert helpers.parse_iso("not-a-date") is None
+
+    def test_returns_none_for_empty_string(self):
+        assert helpers.parse_iso("") is None
+
+
+class TestRetryWithBackoff:
+    def test_returns_immediately_on_first_success(self):
+        calls = {"n": 0}
+
+        def succeed():
+            calls["n"] += 1
+            return "ok"
+
+        result = helpers.retry_with_backoff(succeed, retries=3, backoff=0)
+        assert result == "ok"
+        assert calls["n"] == 1
+
+    def test_succeeds_on_second_attempt(self, monkeypatch):
+        monkeypatch.setattr(helpers.time, "sleep", lambda _: None)
+        calls = {"n": 0}
+
+        def flaky():
+            calls["n"] += 1
+            if calls["n"] < 2:
+                raise RuntimeError("not yet")
+            return "done"
+
+        result = helpers.retry_with_backoff(flaky, retries=3, backoff=0)
+        assert result == "done"
+        assert calls["n"] == 2
+
+    def test_raises_after_all_retries_exhausted(self, monkeypatch):
+        monkeypatch.setattr(helpers.time, "sleep", lambda _: None)
+
+        def always_fail():
+            raise ValueError("always")
+
+        with pytest.raises(RuntimeError, match="Failed after 3 attempts"):
+            helpers.retry_with_backoff(always_fail, retries=3, backoff=0)
+
+
 class TestFetchWikitext:
     def test_returns_revision_content(self, monkeypatch):
         payload = {
