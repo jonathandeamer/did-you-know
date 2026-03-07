@@ -388,6 +388,33 @@ class TestStoreHelpers:
         assert result.get("seen_urls") == []
 
 
+class TestLoadPrefs:
+    def test_missing_file_returns_empty(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(helpers, "PREFS_PATH", tmp_path / "dyk-prefs.json")
+        assert helpers.load_prefs() == {}
+
+    def test_invalid_json_returns_empty_and_warns(self, monkeypatch, tmp_path, capsys):
+        prefs_path = tmp_path / "dyk-prefs.json"
+        prefs_path.write_text("{not json", encoding="utf-8")
+        monkeypatch.setattr(helpers, "PREFS_PATH", prefs_path)
+        result = helpers.load_prefs()
+        assert result == {}
+        assert capsys.readouterr().err  # warning printed to stderr
+
+    def test_valid_prefs_returned(self, monkeypatch, tmp_path):
+        prefs_path = tmp_path / "dyk-prefs.json"
+        prefs = {"domain": {"science": 1}, "tone": {"dark": -1}}
+        prefs_path.write_text(json.dumps(prefs), encoding="utf-8")
+        monkeypatch.setattr(helpers, "PREFS_PATH", prefs_path)
+        assert helpers.load_prefs() == prefs
+
+    def test_non_dict_json_returns_empty(self, monkeypatch, tmp_path):
+        prefs_path = tmp_path / "dyk-prefs.json"
+        prefs_path.write_text("[1, 2, 3]", encoding="utf-8")
+        monkeypatch.setattr(helpers, "PREFS_PATH", prefs_path)
+        assert helpers.load_prefs() == {}
+
+
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):
         now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)

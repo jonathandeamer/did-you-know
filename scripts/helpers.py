@@ -33,6 +33,7 @@ RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 
 # On-disk cache location and retention.
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
+PREFS_PATH = Path.home() / ".openclaw" / "dyk-prefs.json"
 MAX_HOOK_AGE_DAYS = 8  # drop collections fetched this many days ago or more
 
 # Refresh schedule: how often to hit the API.
@@ -251,6 +252,26 @@ def save_store(store: dict) -> None:
     except Exception:
         tmp_path.unlink(missing_ok=True)
         raise
+
+
+def load_prefs() -> dict:
+    """Load user tag preferences from PREFS_PATH.
+
+    Returns {} if the file is missing (silently) or contains invalid JSON
+    (warning to stderr).
+    """
+    try:
+        text = PREFS_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        print(f"DYK: invalid prefs file ({PREFS_PATH}): {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return data
 
 
 def trim_store(store: dict, now: datetime) -> None:
