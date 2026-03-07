@@ -8,6 +8,10 @@
 !LICENSE
 !SKILL.md
 
+# Git hooks
+!.githooks/
+!.githooks/commit-msg
+
 # Source
 !scripts/
 !scripts/dyk.py
