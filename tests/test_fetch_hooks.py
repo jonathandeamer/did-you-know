@@ -7,7 +7,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-# These imports will fail until fetch_hooks.py exists — that is expected.
 import fetch_hooks
 from fetch_hooks import fetch_and_stage
 

@@ -39,6 +39,9 @@ def fetch_and_stage(store: dict) -> None:
         return
     for hook in hooks:
         hook["tags"] = None
+    # Backfill seen_urls from existing collections before trimming so that
+    # legacy caches (written before this field existed) don't lose history
+    # when trim_store removes the oldest entry.
     seen = store.setdefault("seen_urls", [])
     seen_set = set(seen)
     for col in collections:
