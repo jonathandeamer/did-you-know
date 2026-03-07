@@ -172,7 +172,7 @@ def test_fetch_and_stage_seen_urls_survives_trim_store(monkeypatch):
         "collections": [
             {
                 "date": "2026-03-01",
-                "fetched_at": "2026-03-01T12:00:00Z",  # 9 days ago — expired
+                "fetched_at": "2026-03-01T12:00:00Z",  # 9 days ago — > MAX_HOOK_AGE_DAYS (8), expired
                 "hooks": [
                     {
                         "text": "old fact",
@@ -184,7 +184,7 @@ def test_fetch_and_stage_seen_urls_survives_trim_store(monkeypatch):
             },
             {
                 "date": "2026-03-09",
-                "fetched_at": "2026-03-09T12:00:00Z",  # 1 day ago — kept
+                "fetched_at": "2026-03-09T12:00:00Z",  # 1 day ago — < MAX_HOOK_AGE_DAYS (8), kept
                 "hooks": [
                     {
                         "text": "recent fact",
@@ -209,9 +209,10 @@ def test_fetch_and_stage_seen_urls_survives_trim_store(monkeypatch):
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
     fetch_and_stage(store)
 
-    # Expired collection was trimmed.
+    # Expired collection was trimmed; recent collection was kept.
     assert all(c["fetched_at"] != "2026-03-01T12:00:00Z" for c in store["collections"])
-    # But its URL must still be in seen_urls.
+    assert any(c["fetched_at"] == "2026-03-09T12:00:00Z" for c in store["collections"])
+    # Expired collection's URL must still be in seen_urls.
     urls = helpers.stored_urls(store)
     assert "https://en.wikipedia.org/wiki/Article_Old" in urls
 
