@@ -415,6 +415,51 @@ class TestLoadPrefs:
         assert helpers.load_prefs() == {}
 
 
+class TestScoreHook:
+    def test_domain_preference_contributes_score(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 1
+
+    def test_negative_domain_preference_contributes_score(self):
+        hook = {"tags": {"domain": ["military_history"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"military_history": -1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == -1
+
+    def test_tone_preference_contributes_score(self):
+        hook = {"tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
+        prefs = {"domain": {}, "tone": {"surprising": 1}}
+        assert helpers.score_hook(hook, prefs) == 1
+
+    def test_both_dimensions_sum(self):
+        hook = {"tags": {"domain": ["science"], "tone": "surprising", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {"surprising": 1}}
+        assert helpers.score_hook(hook, prefs) == 2
+
+    def test_untagged_hook_scores_zero(self):
+        hook = {"text": "some fact", "urls": [], "returned": False, "tags": None}
+        assert helpers.score_hook(hook, {"domain": {"science": 1}}) == 0
+
+    def test_low_confidence_hook_scores_zero(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 0
+
+    def test_tag_absent_from_prefs_defaults_to_zero(self):
+        hook = {"tags": {"domain": ["animals"], "tone": "whimsical", "low_confidence": False}}
+        assert helpers.score_hook(hook, {}) == 0
+
+    def test_two_domain_tags_sum_their_scores(self):
+        hook = {"tags": {"domain": ["science", "medicine_health"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1, "medicine_health": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 2
+
+    def test_two_domain_tags_mixed_scores(self):
+        hook = {"tags": {"domain": ["science", "military_history"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1, "military_history": -1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 0
+
+
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):
         now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)

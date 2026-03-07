@@ -274,6 +274,25 @@ def load_prefs() -> dict:
     return data
 
 
+def score_hook(hook: dict, prefs: dict) -> int:
+    """Score a hook based on user preferences.
+
+    Returns domain_score + tone_score.
+    Untagged hooks (tags: None) and low-confidence hooks score 0.
+    Domain score is the sum across all domain tags (1–2 tags).
+    """
+    tags = hook.get("tags")
+    if not tags or tags.get("low_confidence"):
+        return 0
+    domain_prefs = prefs.get("domain") or {}
+    tone_prefs = prefs.get("tone") or {}
+    domain_tags = tags.get("domain") or []
+    tone_tag = tags.get("tone")
+    domain_score = sum((domain_prefs.get(tag) or 0) for tag in domain_tags)
+    tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0
+    return domain_score + tone_score
+
+
 def trim_store(store: dict, now: datetime) -> None:
     """Drop collections fetched MAX_HOOK_AGE_DAYS or more days ago."""
     cutoff = now - timedelta(days=MAX_HOOK_AGE_DAYS)
