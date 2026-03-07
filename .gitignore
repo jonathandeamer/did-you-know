@@ -19,6 +19,8 @@
 # Tests
 !tests/
 !tests/test_dyk.py
+!tests/test_helpers.py
+!tests/test_serve_hook.py
 !tests/test_fetch_hooks.py
 !tests/test_write_tags.py
 

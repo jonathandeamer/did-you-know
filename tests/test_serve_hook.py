@@ -1,0 +1,299 @@
+#!/usr/bin/env python3
+"""Unit tests for scripts/serve_hook.py.
+
+Run with: python3 -m pytest tests/ -v
+Requires: pip install pytest
+"""
+
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import helpers
+import serve_hook
+
+
+def make_store(date="2026-02-23", hooks=None, fetched_at="2026-02-23T00:00:00Z"):
+    """Build a single-collection store dict for test fixtures."""
+    return {
+        "collections": [
+            {
+                "date": date,
+                "fetched_at": fetched_at,
+                "hooks": hooks if hooks is not None else [],
+            }
+        ]
+    }
+
+
+class TestFormatHook:
+    def test_returns_text_only_when_no_urls(self):
+        assert serve_hook.format_hook({"text": "hello", "urls": []}) == "Did you know that hello?"
+
+    def test_appends_first_url_when_available(self):
+        hook = {"text": "hello", "urls": ["https://en.wikipedia.org/wiki/Hello", "https://example.com"]}
+        assert serve_hook.format_hook(hook) == (
+            "Did you know that hello?\n\n"
+            "https://en.wikipedia.org/wiki/Hello\n"
+            "https://example.com"
+        )
+
+    def test_decodes_encoded_url_for_display(self):
+        hook = {"text": "C++ is interesting", "urls": ["https://en.wikipedia.org/wiki/C%2B%2B_%28programming_language%29"]}
+        assert serve_hook.format_hook(hook) == (
+            "Did you know that C++ is interesting?\n\n"
+            "https://en.wikipedia.org/wiki/C++_(programming_language)"
+        )
+
+
+class TestEnsureFresh:
+    def test_noop_when_recent_fetch(self, monkeypatch):
+        store = make_store(date="2026-02-24", fetched_at="2026-02-24T10:00:00Z")
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 20, 0, 0, tzinfo=timezone.utc))
+
+        called = {"collect": 0}
+        monkeypatch.setattr(serve_hook, "collect_hooks", lambda: called.__setitem__("collect", 1))
+        serve_hook.ensure_fresh(store)
+        assert called["collect"] == 0
+
+    def test_appends_new_day_and_saves(self, monkeypatch):
+        store = make_store()
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(
+            serve_hook,
+            "collect_hooks",
+            lambda **_kwargs: [{"text": "t", "urls": [], "returned": False}],
+        )
+
+        serve_hook.ensure_fresh(store)
+        assert store["collections"][-1]["date"] == "2026-02-24"
+        assert store["collections"][-1]["fetched_at"] == "2026-02-24T12:00:00Z"
+        assert store["collections"][-1]["hooks"][0]["text"] == "t"
+
+    def test_fetch_failure_uses_existing_cache(self, monkeypatch):
+        store = make_store()
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+
+        def explode(**_kwargs):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(serve_hook, "collect_hooks", explode)
+
+        serve_hook.ensure_fresh(store)
+        assert len(store["collections"]) == 1
+
+    def test_fetch_failure_without_cache_raises(self, monkeypatch):
+        store = {"collections": []}
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+
+        def explode(**_kwargs):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(serve_hook, "collect_hooks", explode)
+        with pytest.raises(RuntimeError, match="network down"):
+            serve_hook.ensure_fresh(store)
+
+    def test_does_not_append_empty_collection(self, monkeypatch):
+        store = make_store()
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(serve_hook, "collect_hooks", lambda **_kwargs: [])
+
+        serve_hook.ensure_fresh(store)
+        assert len(store["collections"]) == 1
+
+    def test_sets_last_checked_at_on_success(self, monkeypatch):
+        """ensure_fresh sets last_checked_at when new hooks are fetched."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = make_store()
+        monkeypatch.setattr(
+            serve_hook,
+            "collect_hooks",
+            lambda **_kwargs: [{"text": "new fact", "urls": [], "returned": False}],
+        )
+
+        serve_hook.ensure_fresh(store)
+        assert store.get("last_checked_at") == "2026-02-24T12:00:00Z"
+        assert store["collections"][-1]["date"] == "2026-02-24"
+
+    def test_sets_last_checked_at_on_all_duplicates(self, monkeypatch):
+        """ensure_fresh sets last_checked_at even when all hooks are duplicates."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = make_store()
+        # collect_hooks returns empty (all duplicates)
+        monkeypatch.setattr(serve_hook, "collect_hooks", lambda **_kwargs: [])
+
+        serve_hook.ensure_fresh(store)
+        assert store.get("last_checked_at") == "2026-02-24T12:00:00Z"
+        # No new collection appended because all were duplicates
+        assert len(store["collections"]) == 1
+
+    def test_sets_last_checked_at_on_fetch_failure(self, monkeypatch):
+        """ensure_fresh sets last_checked_at even on fetch failure with existing cache."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = make_store()
+
+        def explode(**_kwargs):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(serve_hook, "collect_hooks", explode)
+        serve_hook.ensure_fresh(store)
+        # Even though fetch failed, last_checked_at should be set (fallback to cache)
+        assert store.get("last_checked_at") == "2026-02-24T12:00:00Z"
+        assert len(store["collections"]) == 1
+
+    def test_persists_hook_urls_to_seen_urls(self, monkeypatch):
+        """ensure_fresh must add new hook URLs to seen_urls so trim_store
+        cannot cause them to be re-fetched on a later refresh."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = make_store()
+        monkeypatch.setattr(
+            serve_hook,
+            "collect_hooks",
+            lambda **_kwargs: [
+                {"text": "fact", "urls": ["https://en.wikipedia.org/wiki/Article_A"], "returned": False}
+            ],
+        )
+
+        serve_hook.ensure_fresh(store)
+
+        assert "https://en.wikipedia.org/wiki/Article_A" in store.get("seen_urls", [])
+
+    def test_seen_urls_survives_trim_store(self, monkeypatch):
+        """URLs from a trimmed collection must still appear in stored_urls,
+        preventing Wikipedia from re-serving a hook the user has already seen."""
+        now = datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+
+        # Fill store to MAX_COLLECTIONS with one hook each; all hooks served.
+        # No seen_urls key — simulates a legacy cache written before that field
+        # was introduced; ensure_fresh must backfill it before trimming.
+        store = {
+            "collections": [
+                {
+                    "date": f"2026-02-{i:02d}",
+                    "fetched_at": f"2026-02-{i:02d}T12:00:00Z",
+                    "hooks": [
+                        {
+                            "text": f"fact {i}",
+                            "urls": [f"https://en.wikipedia.org/wiki/Article_{i}"],
+                            "returned": True,
+                        }
+                    ],
+                }
+                for i in range(1, helpers.MAX_COLLECTIONS + 1)
+            ],
+        }
+
+        # 11th fetch brings one genuinely new hook; this will trigger a trim.
+        monkeypatch.setattr(
+            serve_hook,
+            "collect_hooks",
+            lambda **_kwargs: [
+                {
+                    "text": "new fact",
+                    "urls": ["https://en.wikipedia.org/wiki/Article_New"],
+                    "returned": False,
+                }
+            ],
+        )
+
+        serve_hook.ensure_fresh(store)
+
+        # trim_store removed collection 1 (Article_1), but seen_urls must
+        # still include it so it can never be re-fetched.
+        assert len(store["collections"]) == helpers.MAX_COLLECTIONS
+        urls = helpers.stored_urls(store)
+        assert "https://en.wikipedia.org/wiki/Article_1" in urls
+
+
+class TestNextHook:
+    def test_marks_first_unreturned(self, monkeypatch):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "old", "urls": [], "returned": True},
+                        {"text": "fresh", "urls": ["https://en.wikipedia.org/wiki/Fresh"], "returned": False},
+                    ],
+                }
+            ]
+        }
+
+        result = serve_hook.next_hook(store)
+        assert result == "Did you know that fresh?\n\nhttps://en.wikipedia.org/wiki/Fresh"
+        assert store["collections"][0]["hooks"][1]["returned"] is True
+
+    def test_returns_no_more_message(self):
+        store = {"collections": [{"date": "2026-02-24", "hooks": [{"returned": True}]}]}
+        result = serve_hook.next_hook(store)
+        assert "No more facts to share today" in result
+
+    def test_falls_back_to_older_collection_when_newest_exhausted(self):
+        store = {
+            "collections": [
+                {"date": "2026-02-23", "hooks": [{"text": "old fact", "urls": [], "returned": False}]},
+                {"date": "2026-02-24", "hooks": [{"text": "new fact", "urls": [], "returned": True}]},
+            ]
+        }
+        result = serve_hook.next_hook(store)
+        assert result == "Did you know that old fact?"
+
+
+class TestMain:
+    def test_saves_store_after_fetch_failure_with_no_cache(self, monkeypatch, tmp_path, capsys):
+        """last_checked_at must be persisted even when ensure_fresh raises (no cache).
+
+        Without this, each invocation hammers the API with no cooldown when
+        the network is down and there is no existing cache on disk.
+        """
+        import json
+        data_path = tmp_path / "dyk.json"
+        monkeypatch.setattr(helpers, "DATA_PATH", data_path)
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        monkeypatch.setattr(serve_hook, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("network down")))
+
+        result = serve_hook.main()
+
+        assert result == 1
+        # The store must have been saved so the cooldown is applied next run
+        assert data_path.exists(), "store was never saved to disk"
+        saved = json.loads(data_path.read_text(encoding="utf-8"))
+        assert saved.get("last_checked_at") == "2026-02-24T12:00:00Z"
+
+    def test_fallback_when_refresh_fails(self, monkeypatch, tmp_path, capsys):
+        # Provide cached data so ensure_fresh can fall back to it
+        monkeypatch.setattr(helpers, "DATA_PATH", tmp_path / "dyk.json")
+        monkeypatch.setattr(
+            serve_hook,
+            "load_store",
+            lambda: {
+                "collections": [
+                    {
+                        "date": "2026-02-27",
+                        "hooks": [
+                            {"text": "cached fact", "urls": [], "returned": False}
+                        ],
+                    }
+                ]
+            },
+        )
+
+        def explode(_store):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(serve_hook, "ensure_fresh", explode)
+        result = serve_hook.main()
+        captured = capsys.readouterr()
+        assert result == 1
+        assert "Something went wrong with the fact-fetching" in captured.out
