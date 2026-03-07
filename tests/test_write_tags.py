@@ -150,6 +150,14 @@ def test_no_match_for_url_is_silently_skipped(tmp_path):
     assert store["collections"][0]["hooks"][0]["tags"] is None  # unchanged
 
 
+def test_apply_tags_skips_already_tagged_hooks(tmp_path):
+    vocab = load_vocabulary(_make_vocab_csv(tmp_path))
+    existing_tags = {"domain": ["history"], "tone": "straight", "low_confidence": False}
+    store = _make_store(tags_value=existing_tags)
+    apply_tags(store, [_VALID_ENTRY], vocab)
+    assert store["collections"][0]["hooks"][0]["tags"] == existing_tags
+
+
 # ---------------------------------------------------------------------------
 # main()
 # ---------------------------------------------------------------------------
@@ -211,6 +219,15 @@ def test_main_json_file_missing_exits_1(tmp_path, monkeypatch):
     result = main([
         "--json-file", str(tmp_path / "nonexistent.json"),
         "--vocabulary", str(_make_vocab_csv(tmp_path)),
+    ])
+    assert result == 1
+
+
+def test_main_missing_vocabulary_exits_1(tmp_path, monkeypatch):
+    monkeypatch.setattr("helpers.DATA_PATH", tmp_path / "store.json")
+    result = main([
+        "--json", json.dumps([_VALID_ENTRY]),
+        "--vocabulary", str(tmp_path / "nonexistent.csv"),
     ])
     assert result == 1
 
