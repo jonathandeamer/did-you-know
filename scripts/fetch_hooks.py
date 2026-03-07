@@ -60,7 +60,7 @@ def fetch_and_stage(store: dict) -> None:
             if url not in seen_set:
                 seen.append(url)
                 seen_set.add(url)
-    trim_store(store)
+    trim_store(store, now)
 
 
 def main() -> int:

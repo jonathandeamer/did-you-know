@@ -89,6 +89,8 @@ def test_fetch_and_stage_does_not_modify_existing_collections(monkeypatch):
     existing_hook = {"text": "old fact", "urls": ["https://en.wikipedia.org/wiki/Old"], "returned": True}
     existing = {"date": "2026-01-01", "fetched_at": "2026-01-01T00:00:00Z", "hooks": [existing_hook]}
     store = {"collections": [existing], "seen_urls": []}
+    # Pin now to 1 day after existing collection so trim_store keeps it.
+    monkeypatch.setattr("fetch_hooks.now_utc", lambda: datetime(2026, 1, 2, 12, 0, 0, tzinfo=timezone.utc))
     monkeypatch.setattr("fetch_hooks.collect_hooks", lambda **kw: [dict(_SAMPLE_HOOK)])
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
     fetch_and_stage(store)
@@ -162,23 +164,36 @@ def test_fetch_and_stage_persists_hook_urls_to_seen_urls(monkeypatch):
 
 
 def test_fetch_and_stage_seen_urls_survives_trim_store(monkeypatch):
-    now = datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
+    """URLs from an expired collection must still appear in stored_urls."""
+    now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr("fetch_hooks.now_utc", lambda: now)
+
     store = {
         "collections": [
             {
-                "date": f"2026-02-{i:02d}",
-                "fetched_at": f"2026-02-{i:02d}T12:00:00Z",
+                "date": "2026-03-01",
+                "fetched_at": "2026-03-01T12:00:00Z",  # 9 days ago — expired
                 "hooks": [
                     {
-                        "text": f"fact {i}",
-                        "urls": [f"https://en.wikipedia.org/wiki/Article_{i}"],
+                        "text": "old fact",
+                        "urls": ["https://en.wikipedia.org/wiki/Article_Old"],
                         "returned": True,
                         "tags": None,
                     }
                 ],
-            }
-            for i in range(1, helpers.MAX_COLLECTIONS + 1)
+            },
+            {
+                "date": "2026-03-09",
+                "fetched_at": "2026-03-09T12:00:00Z",  # 1 day ago — kept
+                "hooks": [
+                    {
+                        "text": "recent fact",
+                        "urls": ["https://en.wikipedia.org/wiki/Article_Recent"],
+                        "returned": True,
+                        "tags": None,
+                    }
+                ],
+            },
         ],
     }
     monkeypatch.setattr(
@@ -193,9 +208,12 @@ def test_fetch_and_stage_seen_urls_survives_trim_store(monkeypatch):
     )
     monkeypatch.setattr("fetch_hooks.refresh_due", lambda s, n: True)
     fetch_and_stage(store)
-    assert len(store["collections"]) == helpers.MAX_COLLECTIONS
+
+    # Expired collection was trimmed.
+    assert all(c["fetched_at"] != "2026-03-01T12:00:00Z" for c in store["collections"])
+    # But its URL must still be in seen_urls.
     urls = helpers.stored_urls(store)
-    assert "https://en.wikipedia.org/wiki/Article_1" in urls
+    assert "https://en.wikipedia.org/wiki/Article_Old" in urls
 
 
 def test_main_saves_store_after_fetch_failure_with_no_cache(tmp_path, monkeypatch):
