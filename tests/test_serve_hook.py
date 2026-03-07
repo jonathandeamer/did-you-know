@@ -168,32 +168,41 @@ class TestEnsureFresh:
         assert "https://en.wikipedia.org/wiki/Article_A" in store.get("seen_urls", [])
 
     def test_seen_urls_survives_trim_store(self, monkeypatch):
-        """URLs from a trimmed collection must still appear in stored_urls,
+        """URLs from an expired collection must still appear in stored_urls,
         preventing Wikipedia from re-serving a hook the user has already seen."""
-        now = datetime(2026, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
 
-        # Fill store to MAX_COLLECTIONS with one hook each; all hooks served.
-        # No seen_urls key — simulates a legacy cache written before that field
-        # was introduced; ensure_fresh must backfill it before trimming.
+        # One expired collection (9 days ago — will be trimmed) and one recent.
+        # No seen_urls key — simulates a legacy cache; ensure_fresh must backfill.
         store = {
             "collections": [
                 {
-                    "date": f"2026-02-{i:02d}",
-                    "fetched_at": f"2026-02-{i:02d}T12:00:00Z",
+                    "date": "2026-03-01",
+                    "fetched_at": "2026-03-01T12:00:00Z",  # 9 days ago — > MAX_HOOK_AGE_DAYS (8), expired
                     "hooks": [
                         {
-                            "text": f"fact {i}",
-                            "urls": [f"https://en.wikipedia.org/wiki/Article_{i}"],
+                            "text": "old fact",
+                            "urls": ["https://en.wikipedia.org/wiki/Article_Old"],
                             "returned": True,
                         }
                     ],
-                }
-                for i in range(1, helpers.MAX_COLLECTIONS + 1)
+                },
+                {
+                    "date": "2026-03-09",
+                    "fetched_at": "2026-03-09T12:00:00Z",  # 1 day ago — < MAX_HOOK_AGE_DAYS (8), kept
+                    "hooks": [
+                        {
+                            "text": "recent fact",
+                            "urls": ["https://en.wikipedia.org/wiki/Article_Recent"],
+                            "returned": True,
+                        }
+                    ],
+                },
             ],
         }
 
-        # 11th fetch brings one genuinely new hook; this will trigger a trim.
+        # New fetch brings a genuinely new hook, triggering a trim.
         monkeypatch.setattr(
             serve_hook,
             "collect_hooks",
@@ -208,11 +217,12 @@ class TestEnsureFresh:
 
         serve_hook.ensure_fresh(store)
 
-        # trim_store removed collection 1 (Article_1), but seen_urls must
-        # still include it so it can never be re-fetched.
-        assert len(store["collections"]) == helpers.MAX_COLLECTIONS
+        # Expired collection was trimmed; recent collection was kept.
+        assert all(c["fetched_at"] != "2026-03-01T12:00:00Z" for c in store["collections"])
+        assert any(c["fetched_at"] == "2026-03-09T12:00:00Z" for c in store["collections"])
+        # Expired collection's URL must still be in seen_urls.
         urls = helpers.stored_urls(store)
-        assert "https://en.wikipedia.org/wiki/Article_1" in urls
+        assert "https://en.wikipedia.org/wiki/Article_Old" in urls
 
 
 class TestNextHook:
