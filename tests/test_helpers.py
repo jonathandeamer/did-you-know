@@ -388,7 +388,6 @@ class TestStoreHelpers:
         assert result.get("seen_urls") == []
 
 
-
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):
         now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)

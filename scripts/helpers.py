@@ -256,7 +256,7 @@ def save_store(store: dict) -> None:
 def trim_store(store: dict, now: datetime) -> None:
     """Drop collections fetched MAX_HOOK_AGE_DAYS or more days ago."""
     cutoff = now - timedelta(days=MAX_HOOK_AGE_DAYS)
-    collections = store.setdefault("collections", [])
+    collections = store.get("collections", [])
     store["collections"] = [
         col for col in collections
         if (ts := parse_iso(col.get("fetched_at", ""))) is not None and ts > cutoff
