@@ -13,7 +13,16 @@
 !scripts/dyk.py
 !scripts/helpers.py
 !scripts/serve_hook.py
+!scripts/fetch_hooks.py
+!scripts/write_tags.py
 
 # Tests
 !tests/
 !tests/test_dyk.py
+!tests/test_fetch_hooks.py
+!tests/test_write_tags.py
+
+# Tagging
+!tagging/
+!tagging/tagging-guide.md
+!tagging/tags.csv
