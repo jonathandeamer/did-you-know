@@ -21,3 +21,8 @@
 !tests/test_dyk.py
 !tests/test_fetch_hooks.py
 !tests/test_write_tags.py
+
+# References
+!references/
+!references/tagging-guide.md
+!references/tags.csv
