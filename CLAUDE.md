@@ -77,12 +77,12 @@ The entry point `scripts/dyk.py` is a thin shim that delegates to `scripts/serve
 
 4. **Refresh & Serving Logic** (`serve_hook.py`)
    - `ensure_fresh()`: Checks if refresh needed (every 12-24 hours via `REFRESH_INTERVAL`), fetches new hooks if needed, skips appending empty collections
-   - `next_hook(store, prefs)`: Scores all unreturned hooks and serves the highest-scoring one. Priority: score desc → newest collection → shortest text → random. Writes `returned_at` to the served hook.
+   - `next_hook(store, prefs)`: Scores all unreturned hooks and serves the highest-scoring one. Priority: score desc → newest collection → shortest text → random. Writes `returned_at` and `served_score` to the winning hook; writes `candidate_score` to every evaluated hook (see Score Storage below).
    - `refresh_due()`: Determines if cache refresh is needed based on timestamp
 
 5. **Preference-Based Scoring** (`helpers.py`)
    - `load_prefs()`: Reads `PREFS_PATH` (`~/.openclaw/dyk-prefs.json`); returns `{}` silently if missing, warns to stderr on invalid JSON
-   - `score_hook(hook, prefs, freshness_bonus, prev_domains)`: Composite scoring function — see its docstring for the full model (domain/tone preferences, diversity penalty, freshness, multi-link, brevity bonuses)
+   - `score_hook(hook, prefs, freshness_bonus, prev_domains)`: Composite scoring function; returns a **breakdown dict** with keys `domain`, `tone`, `diversity_penalty`, `freshness`, `multi_link`, `brevity`, `total`. See its docstring for the full model.
    - `last_served_domains(store)`: Returns domain tags of the most recently served hook (identified via `returned_at` timestamps), used to apply the diversity penalty
 
 6. **Utility Functions** (`helpers.py`)
@@ -109,7 +109,9 @@ Cache format (stored at `DATA_PATH`):
           "urls": ["https://en.wikipedia.org/wiki/C%2B%2B_%28programming_language%29"],
           "tags": {"domain": ["science"], "tone": "surprising", "low_confidence": false},
           "returned": true,
-          "returned_at": "2026-02-24T14:00:00Z"
+          "returned_at": "2026-02-24T14:00:00Z",
+          "candidate_score": {"domain": 1, "tone": 0, "diversity_penalty": 0, "freshness": 0.1, "multi_link": 0, "brevity": 0.05, "total": 1.15},
+          "served_score": {"domain": 1, "tone": 0, "diversity_penalty": 0, "freshness": 0.1, "multi_link": 0, "brevity": 0.05, "total": 1.15}
         }
       ]
     }
@@ -119,6 +121,15 @@ Cache format (stored at `DATA_PATH`):
 
 `tags` is `null` for hooks that have not yet been tagged by `write_tags.py`. `returned_at` is written when a hook is served and is used to identify the previously served domain for the diversity penalty.
 
+### Score Storage
+
+Two score fields are written to hook objects in the cache:
+
+- **`candidate_score`** — Written to every evaluated (unreturned) hook on each call to `next_hook()`. It reflects the score at the time of that call. It is overwritten on subsequent calls, so it may be stale if prefs or the previously served domain have changed since the last run.
+- **`served_score`** — Written only to the winning hook at the moment it is served, alongside `returned_at`. It is never overwritten. It is the definitive record of why that hook was chosen and what score it received when it was served.
+
+Both fields are breakdown dicts with keys: `domain`, `tone`, `diversity_penalty`, `freshness`, `multi_link`, `brevity`, `total`. These fields are intentionally persisted to the on-disk cache to support LLM explainability — an agent reading the cache can describe exactly why a hook was (or wasn't) served.
+
 ## Key Design Decisions
 
 - **No API key required**: Uses public MediaWiki API
@@ -127,6 +138,7 @@ Cache format (stored at `DATA_PATH`):
 - **Stale refresh check**: If new facts are all duplicates, refresh flag stays True (re-checks on next run)
 - **URL encoding/decoding**: URLs are stored encoded but decoded for display to match Wikipedia's presentation
 - **Preference-based serving**: Hooks are scored and served by priority using user-declared tag preferences (`~/.openclaw/dyk-prefs.json`), with bonuses for freshness, brevity, and multiple sources, and a diversity penalty for consecutive same-domain hooks. Missing prefs file → neutral scoring (existing behaviour preserved).
+- **Score breakdown for LLM explainability**: `score_hook()` returns a dict (not a scalar) so every contribution to a hook's score is named and inspectable. `candidate_score` (stale, overwritten) and `served_score` (stable, written once) are persisted to the cache, letting an LLM agent explain why any hook was or wasn't served.
 
 ## Development Philosophy
 
