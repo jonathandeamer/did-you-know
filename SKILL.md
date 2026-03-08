@@ -62,7 +62,7 @@ Something went wrong with the fact-fetching; please try again later.
 
 ### Explaining a fact choice
 
-If the user wants the fact choice explained, read `~/.openclaw/dyk-facts.json` and find the hook with the most recent `returned_at` timestamp. Use its `served_score` field — a breakdown of the exact score it received at the moment it was chosen:
+If the user wants the fact choice explained, read `~/.openclaw/dyk-facts.json` and find the hook with the most recent `returned_at` timestamp. Use its `served_score` field — a breakdown of the exact score it received at the moment it was chosen. If the user wants to compare against the facts that were not chosen, each unchosen hook has a `candidate_score` field with the same structure — but note that `candidate_score` is overwritten on every run, so it reflects the most recent evaluation and may not match what was calculated when the fact was originally served (e.g. if preferences have changed since).
 
 | Field | What it means |
 |---|---|
@@ -74,8 +74,6 @@ If the user wants the fact choice explained, read `~/.openclaw/dyk-facts.json` a
 | `brevity` | Bonus for being a short fact |
 
 List all six components, then summarise the most significant contributors in plain language.
-
-**If `served_score` is absent** but `candidate_score` is present, use `candidate_score` instead and tell the user it comes from before detailed score recording was added — it reflects the same evaluation round, so it is still accurate for that fact. If neither field is present, tell the user that this fact was served before score recording was introduced and you cannot explain the choice.
 
 ## Managing preferences
 
