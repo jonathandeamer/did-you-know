@@ -60,6 +60,23 @@ Something went wrong with the fact-fetching; please try again later.
 ```
 
 
+### Explaining a fact choice
+
+If the user wants the fact choice explained, read `~/.openclaw/dyk-facts.json` and find the hook with the most recent `returned_at` timestamp. Use its `served_score` field — a breakdown of the exact score it received at the moment it was chosen:
+
+| Field | What it means |
+|---|---|
+| `domain` | Points from the user's domain tag preferences (positive = liked tags matched, negative = disliked) |
+| `tone` | Points from the user's tone tag preference |
+| `diversity_penalty` | Deduction for sharing a domain tag with the previous fact |
+| `freshness` | Bonus for being from the most recently fetched batch |
+| `multi_link` | Bonus for having more than one source link |
+| `brevity` | Bonus for being a short fact |
+
+List all six components, then summarise the most significant contributors in plain language.
+
+**If `served_score` is absent** but `candidate_score` is present, use `candidate_score` instead and tell the user it comes from before detailed score recording was added — it reflects the same evaluation round, so it is still accurate for that fact. If neither field is present, tell the user that this fact was served before score recording was introduced and you cannot explain the choice.
+
 ## Managing preferences
 
 Facts are scored using user preferences. Liked tags increase the score and disliked tags reduce it. Recency and variety bonuses are applied automatically.
