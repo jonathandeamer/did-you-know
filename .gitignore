@@ -21,6 +21,7 @@
 !scripts/serve_hook.py
 !scripts/fetch_hooks.py
 !scripts/write_tags.py
+!scripts/prefs.py
 
 # Tests
 !tests/
@@ -29,6 +30,7 @@
 !tests/test_serve_hook.py
 !tests/test_fetch_hooks.py
 !tests/test_write_tags.py
+!tests/test_prefs.py
 
 # Tagging
 !tagging/
