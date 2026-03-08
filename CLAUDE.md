@@ -56,6 +56,7 @@ The entry point `scripts/dyk.py` is a thin shim that delegates to `scripts/serve
 - **`scripts/dyk.py`** — Backwards-compatible shim; re-exports `main` from `serve_hook`.
 - **`scripts/fetch_hooks.py`** — Standalone script for pre-fetching hooks into the cache (used by cron/automation).
 - **`scripts/write_tags.py`** — Applies subject/tone tags from a JSON file into the cache.
+- **`scripts/prefs.py`** — CLI for reading and writing `dyk-prefs.json` (`init`, `list`, `get`, `set` subcommands).
 
 ### Main Components
 
@@ -153,6 +154,7 @@ Test files by module:
 - `tests/test_dyk.py` — backwards-compatibility contract (stdout format, exit codes, cache schema)
 - `tests/test_fetch_hooks.py` — pre-fetch script (`fetch_hooks.py`)
 - `tests/test_write_tags.py` — tag application script (`write_tags.py`)
+- `tests/test_prefs.py` — prefs CLI (`prefs.py`)
 
 Key test patterns:
 - Individual parser functions tested with regex edge cases
@@ -199,6 +201,8 @@ docs: clarify cache structure in README
 - `tests/test_helpers.py`: Unit tests for `helpers.py`
 - `tests/test_serve_hook.py`: Unit tests for `serve_hook.py`
 - `tests/test_dyk.py`: Backwards-compatibility contract tests
+- `scripts/prefs.py`: Prefs CLI — `init`, `list`, `get <dim> <tag>`, `set <dim> <tag> <like|neutral|dislike>`
+- `tests/test_prefs.py`: Unit tests for `prefs.py`
 - `.gitmessage`: Conventional commit template
 
 ## Constants & Configuration
