@@ -399,6 +399,26 @@ class TestNextHook:
         serve_hook.next_hook(store, {})
         assert store["collections"][0]["hooks"][0]["returned_at"] == "2026-02-24T12:00:00Z"
 
+    def test_candidate_score_written_to_all_hooks_including_unserved(self, monkeypatch):
+        """next_hook writes candidate_score to every evaluated hook, served or not."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        long_text = " ".join(["word"] * 20)
+        store = {
+            "collections": [
+                {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
+                 "hooks": [
+                     {"text": long_text, "urls": [], "returned": False, "tags": None},
+                     {"text": long_text, "urls": [], "returned": False, "tags": None},
+                 ]}
+            ]
+        }
+        serve_hook.next_hook(store, {})
+        hooks = store["collections"][0]["hooks"]
+        for hook in hooks:
+            assert "candidate_score" in hook
+            assert set(hook["candidate_score"].keys()) == {"domain", "tone", "diversity_penalty", "freshness", "multi_link", "brevity", "total"}
+
     def test_served_score_written_when_hook_served(self, monkeypatch):
         """next_hook writes served_score breakdown to the served hook."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)

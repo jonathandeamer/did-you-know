@@ -117,6 +117,7 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
             if not hook.get("returned"):
                 char_count = len(hook.get("text") or "")
                 breakdown = score_hook(hook, prefs, freshness_bonus, prev_domains)
+                hook["candidate_score"] = breakdown
                 candidates.append((breakdown["total"], coll_idx, char_count, hook, breakdown))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
