@@ -399,6 +399,27 @@ class TestNextHook:
         serve_hook.next_hook(store, {})
         assert store["collections"][0]["hooks"][0]["returned_at"] == "2026-02-24T12:00:00Z"
 
+    def test_served_score_written_when_hook_served(self, monkeypatch):
+        """next_hook writes served_score breakdown to the served hook."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = {
+            "collections": [
+                {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
+                 "hooks": [{"text": " ".join(["word"] * 20), "urls": [], "returned": False,
+                            "tags": {"domain": ["science"], "tone": "surprising", "low_confidence": False}}]}
+            ]
+        }
+        prefs = {"domain": {"science": 1}, "tone": {"surprising": 1}}
+        serve_hook.next_hook(store, prefs)
+        hook = store["collections"][0]["hooks"][0]
+        assert "served_score" in hook
+        score = hook["served_score"]
+        assert set(score.keys()) == {"domain", "tone", "diversity_penalty", "freshness", "multi_link", "brevity", "total"}
+        assert score["domain"] == pytest.approx(1)
+        assert score["tone"] == pytest.approx(1)
+        assert score["total"] == pytest.approx(2.1)  # 1 + 1 + 0.1 freshness (newest collection)
+
     def test_domain_penalty_applied_to_previously_served_domain(self, monkeypatch):
         """Hooks sharing the last served domain incur a flat −0.2 diversity penalty per tag."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)

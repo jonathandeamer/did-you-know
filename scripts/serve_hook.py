@@ -116,16 +116,19 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
                 char_count = len(hook.get("text") or "")
-                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains)["total"], coll_idx, char_count, hook))
+                breakdown = score_hook(hook, prefs, freshness_bonus, prev_domains)
+                candidates.append((breakdown["total"], coll_idx, char_count, hook, breakdown))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
     # Primary sort. Ties after this are broken by steps 2–4 above.
     candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
     top_score, top_coll_idx, top_chars = candidates[0][0], candidates[0][1], candidates[0][2]
     tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx and c[2] == top_chars]
-    hook = random.choice(tied)[3]
+    chosen = random.choice(tied)
+    hook = chosen[3]
     hook["returned"] = True
     hook["returned_at"] = to_iso_z(now_utc())
+    hook["served_score"] = chosen[4]
     return format_hook(hook)
 
 
