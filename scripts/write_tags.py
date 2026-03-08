@@ -33,15 +33,25 @@ def apply_tags(store: dict, entries: list[dict], vocab: dict[str, set[str]]) -> 
     Unrecognised URLs are silently skipped.
     Raises ValueError on any unknown tag before any merging occurs.
     """
+    if not isinstance(entries, list):
+        raise ValueError("entries must be a list")
+
     allowed_domains = vocab.get("domain", set())
     allowed_tones = vocab.get("tone", set())
 
     # Validate all before touching the store.
     for entry in entries:
-        for d in entry.get("domain", []):
+        if not isinstance(entry.get("url"), str):
+            raise ValueError("each entry must have a 'url' string field")
+        domain = entry.get("domain", [])
+        if not isinstance(domain, list):
+            raise ValueError(f"'domain' must be a list, got {type(domain).__name__!r}")
+        tone = entry.get("tone")
+        if not isinstance(tone, str):
+            raise ValueError(f"'tone' must be a string, got {type(tone).__name__!r}")
+        for d in domain:
             if d not in allowed_domains:
                 raise ValueError(f"Unknown domain tag: {d!r}")
-        tone = entry.get("tone")
         if tone not in allowed_tones:
             raise ValueError(f"Unknown tone tag: {tone!r}")
 

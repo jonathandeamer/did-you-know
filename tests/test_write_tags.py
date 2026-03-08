@@ -118,6 +118,37 @@ def test_does_not_modify_text_urls_or_returned(tmp_path):
     assert hook["returned"] == returned_before
 
 
+def test_rejects_entries_that_is_not_a_list(tmp_path):
+    vocab = load_vocabulary(_make_vocab_csv(tmp_path))
+    store = _make_store()
+    with pytest.raises(ValueError, match="list"):
+        apply_tags(store, {"url": "https://en.wikipedia.org/wiki/Foo"}, vocab)
+
+
+def test_rejects_entry_missing_url(tmp_path):
+    vocab = load_vocabulary(_make_vocab_csv(tmp_path))
+    store = _make_store()
+    bad_entry = {"domain": ["science"], "tone": "surprising"}
+    with pytest.raises(ValueError, match="url"):
+        apply_tags(store, [bad_entry], vocab)
+
+
+def test_rejects_entry_with_non_list_domain(tmp_path):
+    vocab = load_vocabulary(_make_vocab_csv(tmp_path))
+    store = _make_store()
+    bad_entry = {**_VALID_ENTRY, "domain": "science"}
+    with pytest.raises(ValueError, match="domain"):
+        apply_tags(store, [bad_entry], vocab)
+
+
+def test_rejects_entry_with_non_string_tone(tmp_path):
+    vocab = load_vocabulary(_make_vocab_csv(tmp_path))
+    store = _make_store()
+    bad_entry = {**_VALID_ENTRY, "tone": ["surprising"]}
+    with pytest.raises(ValueError, match="tone"):
+        apply_tags(store, [bad_entry], vocab)
+
+
 def test_rejects_unknown_domain(tmp_path):
     vocab = load_vocabulary(_make_vocab_csv(tmp_path))
     store = _make_store()

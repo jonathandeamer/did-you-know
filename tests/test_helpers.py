@@ -414,6 +414,13 @@ class TestLoadPrefs:
         monkeypatch.setattr(helpers, "PREFS_PATH", prefs_path)
         assert helpers.load_prefs() == {}
 
+    def test_non_dict_json_warns_to_stderr(self, monkeypatch, tmp_path, capsys):
+        prefs_path = tmp_path / "dyk-prefs.json"
+        prefs_path.write_text("[1, 2, 3]", encoding="utf-8")
+        monkeypatch.setattr(helpers, "PREFS_PATH", prefs_path)
+        helpers.load_prefs()
+        assert capsys.readouterr().err
+
 
 class TestScoreHook:
     # Neutral text long enough (≥17 words) to avoid triggering the brevity bonus.

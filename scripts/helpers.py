@@ -270,6 +270,7 @@ def load_prefs() -> dict:
         print(f"DYK: invalid prefs file ({PREFS_PATH}): {exc}", file=sys.stderr)
         return {}
     if not isinstance(data, dict):
+        print(f"DYK: invalid prefs file ({PREFS_PATH}): expected object, got {type(data).__name__}", file=sys.stderr)
         return {}
     return data
 
