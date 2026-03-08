@@ -93,6 +93,7 @@ def test_list_prints_prefs(tmp_path, monkeypatch, capsys):
     assert "like" in out
     assert "science" in out
     assert "dislike" in out
+    assert "neutral" in out
 
 
 def test_list_missing_file_suggests_init(tmp_path, monkeypatch, capsys):

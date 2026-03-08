@@ -58,6 +58,9 @@ def cmd_list(args: argparse.Namespace) -> int:
     except (json.JSONDecodeError, OSError) as exc:
         print(f"Cannot read prefs: {exc}", file=sys.stderr)
         return 1
+    if not isinstance(data, dict):
+        print(f"Prefs file is malformed (expected a JSON object)", file=sys.stderr)
+        return 1
     for dim, tags in sorted(data.items()):
         print(f"{dim}:")
         for tag, val in sorted(tags.items()):
