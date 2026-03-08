@@ -149,7 +149,7 @@ def fetch_wikitext(retries: int = 3, backoff: float = 2.0) -> str:
         req = urllib.request.Request(
             API_URL,
             headers={
-                "User-Agent": f"did-you-know/{VERSION} (https://en.wikipedia.org/wiki/User:Jonathan_Deamer)"
+                "User-Agent": f"did-you-know/{VERSION} (https://github.com/jonathandeamer/did-you-know)"
             },
         )
         with urllib.request.urlopen(req, timeout=20) as resp:

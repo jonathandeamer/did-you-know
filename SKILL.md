@@ -1,7 +1,7 @@
 ---
 name: did-you-know
 description: Fetches English Wikipedia's "Did you know?" (DYK) facts, caches them locally, and serves them one at a time. No API key required. Does not edit Wikipedia.
-homepage: https://en.wikipedia.org/wiki/User:Jonathan_Deamer
+homepage: https://github.com/jonathandeamer/did-you-know
 metadata: {"openclaw":{"emoji":"❓","requires":{"bins":["python3"]}}}
 ---
 
