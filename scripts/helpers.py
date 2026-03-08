@@ -291,7 +291,7 @@ def score_hook(
     Hooks under 17 words get a brevity bonus: <10 words → +0.1, 10-16 words → +0.05.
     """
     urls = hook.get("urls") or []
-    multi_link_bonus = max(0, len(urls) - 1) * 0.1
+    multi_link_bonus = max(0, len(urls) - 1) * 0.05
     word_count = len((hook.get("text") or "").split())
     # Thresholds from corpus analysis of 118k+ hooks: p10 ≈ 13 words, p25 ≈ 17 words.
     brevity_bonus = 0.1 if word_count < 13 else (0.05 if word_count < 17 else 0.0)

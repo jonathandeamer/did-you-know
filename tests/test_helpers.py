@@ -520,18 +520,18 @@ class TestScoreHook:
         hook = {"text": self.LONG, "urls": ["https://en.wikipedia.org/wiki/A"], "tags": None}
         assert helpers.score_hook(hook, {}) == 0
 
-    def test_two_urls_adds_point_one(self):
+    def test_two_urls_adds_point_zero_five(self):
         hook = {"text": self.LONG, "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"], "tags": None}
-        assert helpers.score_hook(hook, {}) == pytest.approx(0.1)
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.05)
 
-    def test_three_urls_adds_point_two(self):
+    def test_three_urls_adds_point_one(self):
         hook = {
             "text": self.LONG,
             "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B",
                      "https://en.wikipedia.org/wiki/C"],
             "tags": None,
         }
-        assert helpers.score_hook(hook, {}) == pytest.approx(0.2)
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.1)
 
     def test_zero_urls_adds_no_bonus(self):
         hook = {"text": self.LONG, "urls": [], "tags": None}
@@ -544,8 +544,8 @@ class TestScoreHook:
             "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False},
         }
         prefs = {"domain": {"science": 1}, "tone": {}}
-        # 1 (pref) + 0.1 (multi-link) = 1.1
-        assert helpers.score_hook(hook, prefs) == pytest.approx(1.1)
+        # 1 (pref) + 0.05 (multi-link) = 1.05
+        assert helpers.score_hook(hook, prefs) == pytest.approx(1.05)
 
     def test_brevity_bonus_point_one_when_fewer_than_13_words(self):
         hook = {"urls": [], "text": " ".join(["word"] * 12), "tags": None}
