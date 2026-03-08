@@ -282,14 +282,18 @@ def score_hook(
 ) -> int | float:
     """Score a hook based on user preferences.
 
-    Returns domain_score + tone_score + freshness_bonus.
-    Untagged hooks (tags: None) and low-confidence hooks score 0.
+    Returns domain_score + tone_score + freshness_bonus + multi_link_bonus.
+    Freshness and multi-link bonuses apply to all hooks.
+    Untagged hooks (tags: None) and low-confidence hooks score 0 for domain/tone.
     Domain score is the sum across all domain tags (1–2 tags).
     Tags shared with prev_domains have their per-tag score multiplied by 0.8.
+    Each URL beyond the first adds 0.1 (multi-link bonus).
     """
+    urls = hook.get("urls") or []
+    multi_link_bonus = max(0, len(urls) - 1) * 0.1
     tags = hook.get("tags")
     if not tags or tags.get("low_confidence"):
-        return 0
+        return freshness_bonus + multi_link_bonus
     domain_prefs = prefs.get("domain")
     domain_prefs = domain_prefs if isinstance(domain_prefs, dict) else {}
     tone_prefs = prefs.get("tone")
@@ -302,7 +306,7 @@ def score_hook(
         for tag in domain_tags
     )
     tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0
-    return domain_score + tone_score + freshness_bonus
+    return domain_score + tone_score + freshness_bonus + multi_link_bonus
 
 
 def last_served_domains(store: dict) -> set[str]:

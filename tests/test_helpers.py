@@ -505,6 +505,43 @@ class TestScoreHook:
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, prev_domains=set()) == 1
 
+    def test_freshness_bonus_applied_to_untagged_hook(self):
+        hook = {"urls": [], "tags": None}
+        assert helpers.score_hook(hook, {}, freshness_bonus=0.1) == pytest.approx(0.1)
+
+    def test_freshness_bonus_applied_to_low_confidence_hook(self):
+        hook = {"urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
+        assert helpers.score_hook(hook, {}, freshness_bonus=0.1) == pytest.approx(0.1)
+
+    def test_single_url_adds_no_bonus(self):
+        hook = {"urls": ["https://en.wikipedia.org/wiki/A"], "tags": None}
+        assert helpers.score_hook(hook, {}) == 0
+
+    def test_two_urls_adds_point_one(self):
+        hook = {"urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"], "tags": None}
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.1)
+
+    def test_three_urls_adds_point_two(self):
+        hook = {
+            "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B",
+                     "https://en.wikipedia.org/wiki/C"],
+            "tags": None,
+        }
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.2)
+
+    def test_zero_urls_adds_no_bonus(self):
+        hook = {"urls": [], "tags": None}
+        assert helpers.score_hook(hook, {}) == 0
+
+    def test_multi_link_bonus_applies_to_tagged_hook(self):
+        hook = {
+            "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"],
+            "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False},
+        }
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        # 1 (pref) + 0.1 (multi-link) = 1.1
+        assert helpers.score_hook(hook, prefs) == pytest.approx(1.1)
+
 
 class TestLastServedDomains:
     def test_returns_empty_set_when_no_hooks_returned(self):
