@@ -274,12 +274,18 @@ def load_prefs() -> dict:
     return data
 
 
-def score_hook(hook: dict, prefs: dict, freshness_bonus: float = 0.0) -> int | float:
+def score_hook(
+    hook: dict,
+    prefs: dict,
+    freshness_bonus: float = 0.0,
+    prev_domains: set[str] | None = None,
+) -> int | float:
     """Score a hook based on user preferences.
 
     Returns domain_score + tone_score + freshness_bonus.
     Untagged hooks (tags: None) and low-confidence hooks score 0.
     Domain score is the sum across all domain tags (1–2 tags).
+    Tags shared with prev_domains have their per-tag score multiplied by 0.8.
     """
     tags = hook.get("tags")
     if not tags or tags.get("low_confidence"):
@@ -288,11 +294,40 @@ def score_hook(hook: dict, prefs: dict, freshness_bonus: float = 0.0) -> int | f
     domain_prefs = domain_prefs if isinstance(domain_prefs, dict) else {}
     tone_prefs = prefs.get("tone")
     tone_prefs = tone_prefs if isinstance(tone_prefs, dict) else {}
+    prev = prev_domains or set()
     domain_tags = tags.get("domain") or []
     tone_tag = tags.get("tone")
-    domain_score = sum((domain_prefs.get(tag) or 0) for tag in domain_tags)
+    domain_score = sum(
+        (domain_prefs.get(tag) or 0) * (0.8 if tag in prev else 1.0)
+        for tag in domain_tags
+    )
     tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0
     return domain_score + tone_score + freshness_bonus
+
+
+def last_served_domains(store: dict) -> set[str]:
+    """Return the domain tags of the most recently served hook.
+
+    Uses returned_at timestamps to determine recency.
+    Returns an empty set if no hook has been served or the last hook is untagged.
+    """
+    best_hook = None
+    best_ts = None
+    for coll in store.get("collections", []):
+        for hook in coll.get("hooks", []):
+            ts_str = hook.get("returned_at")
+            if not ts_str:
+                continue
+            ts = parse_iso(ts_str)
+            if best_ts is None or ts > best_ts:
+                best_ts = ts
+                best_hook = hook
+    if best_hook is None:
+        return set()
+    tags = best_hook.get("tags")
+    if not tags:
+        return set()
+    return set(tags.get("domain") or [])
 
 
 def trim_store(store: dict, now: datetime) -> None:

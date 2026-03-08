@@ -356,9 +356,9 @@ class TestNextHook:
         calls = []
         original = helpers.score_hook
 
-        def recording(hook, prefs, freshness_bonus=0.0):
+        def recording(hook, prefs, freshness_bonus=0.0, prev_domains=None):
             calls.append(freshness_bonus)
-            return original(hook, prefs, freshness_bonus)
+            return original(hook, prefs, freshness_bonus, prev_domains)
 
         monkeypatch.setattr(serve_hook, "score_hook", recording)
         store = {
@@ -370,6 +370,45 @@ class TestNextHook:
         serve_hook.next_hook(store, {})
         assert 0.1 in calls
         assert 0.0 in calls
+
+    def test_returned_at_written_when_hook_served(self, monkeypatch):
+        """next_hook writes returned_at timestamp to the served hook."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        store = {
+            "collections": [
+                {"date": "2026-02-24", "hooks": [{"text": "fact", "urls": [], "returned": False, "tags": None}]}
+            ]
+        }
+        serve_hook.next_hook(store, {})
+        assert store["collections"][0]["hooks"][0]["returned_at"] == "2026-02-24T12:00:00Z"
+
+    def test_domain_penalty_applied_to_previously_served_domain(self, monkeypatch):
+        """Hooks sharing the last served domain have that tag's score multiplied by 0.8."""
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
+        prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        # Previously served science hook
+                        {"text": "old science", "urls": [], "returned": True,
+                         "returned_at": "2026-02-24T11:00:00Z",
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                        # Science hook: score 1×0.8 = 0.8 (penalised)
+                        {"text": "new science", "urls": [], "returned": False,
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                        # History hook: score 1×1.0 = 1.0 (not penalised)
+                        {"text": "new history", "urls": [], "returned": False,
+                         "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        result = serve_hook.next_hook(store, prefs)
+        assert "new history" in result
 
 
 class TestMain:

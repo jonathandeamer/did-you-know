@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from helpers import (
     collect_hooks,
+    last_served_domains,
     load_prefs,
     load_store,
     now_utc,
@@ -100,12 +101,13 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
     if prefs is None:
         prefs = {}
     collections = store.get("collections", [])
+    prev_domains = last_served_domains(store)
     candidates = []
-    for coll_idx, coll in enumerate(reversed(collections)):
+    for coll_idx, coll in enumerate(reversed(collections)):  # coll_idx 0 = newest
         freshness_bonus = 0.1 if coll_idx == 0 else 0.0
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
-                candidates.append((score_hook(hook, prefs, freshness_bonus), coll_idx, hook))
+                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, hook))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
     # Sort: score descending, then most recent collection first (coll_idx=0 is newest)
@@ -114,6 +116,7 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
     tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx]
     hook = random.choice(tied)[2]
     hook["returned"] = True
+    hook["returned_at"] = to_iso_z(now_utc())
     return format_hook(hook)
 
 

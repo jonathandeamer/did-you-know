@@ -479,6 +479,109 @@ class TestScoreHook:
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 1
 
+    def test_prev_domain_reduces_matching_tag_score(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(0.8)
+
+    def test_prev_domain_does_not_affect_non_matching_tag(self):
+        hook = {"tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"history": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == 1
+
+    def test_prev_domain_only_penalises_shared_tag_in_multi_domain_hook(self):
+        hook = {"tags": {"domain": ["science", "history"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
+        # science gets ×0.8, history gets ×1.0 → 0.8 + 1.0 = 1.8
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(1.8)
+
+    def test_prev_domains_none_applies_no_penalty(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs, prev_domains=None) == 1
+
+    def test_prev_domains_empty_applies_no_penalty(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs, prev_domains=set()) == 1
+
+
+class TestLastServedDomains:
+    def test_returns_empty_set_when_no_hooks_returned(self):
+        store = {"collections": [{"date": "2026-02-24", "hooks": [{"text": "fact", "returned": False}]}]}
+        assert helpers.last_served_domains(store) == set()
+
+    def test_returns_empty_set_when_no_collections(self):
+        assert helpers.last_served_domains({"collections": []}) == set()
+
+    def test_returns_domains_of_most_recently_served_hook(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "a", "returned": True, "returned_at": "2026-02-24T10:00:00Z",
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        assert helpers.last_served_domains(store) == {"science"}
+
+    def test_picks_hook_with_most_recent_returned_at(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "earlier", "returned": True, "returned_at": "2026-02-24T09:00:00Z",
+                         "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
+                        {"text": "later", "returned": True, "returned_at": "2026-02-24T10:00:00Z",
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        assert helpers.last_served_domains(store) == {"science"}
+
+    def test_returns_empty_set_when_most_recent_hook_is_untagged(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "fact", "returned": True, "returned_at": "2026-02-24T10:00:00Z", "tags": None},
+                    ],
+                }
+            ]
+        }
+        assert helpers.last_served_domains(store) == set()
+
+    def test_returns_empty_set_when_no_returned_at_present(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [{"text": "fact", "returned": True}],
+                }
+            ]
+        }
+        assert helpers.last_served_domains(store) == set()
+
+    def test_returns_all_domains_of_multi_domain_hook(self):
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "fact", "returned": True, "returned_at": "2026-02-24T10:00:00Z",
+                         "tags": {"domain": ["science", "history"], "tone": "straight", "low_confidence": False}},
+                    ],
+                }
+            ]
+        }
+        assert helpers.last_served_domains(store) == {"science", "history"}
+
 
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):
