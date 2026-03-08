@@ -116,7 +116,7 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
                 char_count = len(hook.get("text") or "")
-                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, char_count, hook))
+                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains)["total"], coll_idx, char_count, hook))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
     # Primary sort. Ties after this are broken by steps 2–4 above.

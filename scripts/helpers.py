@@ -280,27 +280,28 @@ def score_hook(
     prefs: dict,
     freshness_bonus: float = 0.0,
     prev_domains: set[str] | None = None,
-) -> int | float:
-    """Score a hook for serving priority. Higher scores are served first.
+) -> dict:
+    """Score a hook for serving priority. Returns a breakdown dict.
 
-    Score = domain_score + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+    Keys: domain, tone, diversity_penalty, freshness, multi_link, brevity, total.
+    Higher total scores are served first.
 
     Preference scores (from prefs file, range −3 to +3):
-      domain_score  sum of pref scores for each domain tag (each tag: −1, 0, or +1)
-                    minus 0.2 per tag shared with the previously served hook's domains
-                    (diversity penalty applies even when pref score is 0, so identical-
-                    domain hooks are de-prioritised regardless of user preferences)
-      tone_score    pref score for the single tone tag (−1, 0, or +1)
+      domain            sum of pref scores for each domain tag (each tag: −1, 0, or +1)
+      tone              pref score for the single tone tag (−1, 0, or +1)
+      diversity_penalty −0.2 per domain tag shared with the previously served hook's domains
+                        (applies even when pref score is 0, so identical-domain hooks are
+                        de-prioritised regardless of user preferences)
 
     Bonuses (applied to all hooks, including untagged and low-confidence):
       freshness     +0.1 if the hook is from the most recently fetched collection
-      multi-link    +0.05 per URL beyond the first (two links → +0.05, three → +0.10)
+      multi_link    +0.05 per URL beyond the first (two links → +0.05, three → +0.10)
       brevity       +0.10 if < 13 words; +0.05 if 13–16 words; 0 if ≥ 17 words
                     (thresholds from corpus analysis of 118k+ hooks: p10 ≈ 13, p25 ≈ 17)
 
-    Untagged hooks (tags: None) and low-confidence hooks skip preference scoring and
-    return only the sum of applicable bonuses. They remain eligible and are always served
-    eventually — negative preference scores are never used to withhold hooks.
+    Untagged hooks (tags: None) and low-confidence hooks skip preference scoring —
+    domain, tone, and diversity_penalty are 0. They remain eligible and are always
+    served eventually — negative preference scores are never used to withhold hooks.
     """
     # --- Bonuses (apply to all hooks) ---
     urls = hook.get("urls") or []
@@ -311,7 +312,10 @@ def score_hook(
     # --- Preference scores (tagged, non-low-confidence hooks only) ---
     tags = hook.get("tags")
     if not tags or tags.get("low_confidence"):
-        return freshness_bonus + multi_link_bonus + brevity_bonus
+        total = freshness_bonus + multi_link_bonus + brevity_bonus
+        return {"domain": 0, "tone": 0, "diversity_penalty": 0,
+                "freshness": freshness_bonus, "multi_link": multi_link_bonus,
+                "brevity": brevity_bonus, "total": total}
     domain_prefs = prefs.get("domain")
     domain_prefs = domain_prefs if isinstance(domain_prefs, dict) else {}
     tone_prefs = prefs.get("tone")
@@ -319,12 +323,13 @@ def score_hook(
     prev = prev_domains or set()
     domain_tags = tags.get("domain") or []
     tone_tag = tags.get("tone")
-    domain_score = sum(
-        (domain_prefs.get(tag) or 0) + (-0.2 if tag in prev else 0.0)
-        for tag in domain_tags
-    )
+    domain_score = sum((domain_prefs.get(tag) or 0) for tag in domain_tags)
+    diversity_penalty = sum(-0.2 for tag in domain_tags if tag in prev)
     tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0
-    return domain_score + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+    total = domain_score + diversity_penalty + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+    return {"domain": domain_score, "tone": tone_score,
+            "diversity_penalty": diversity_penalty, "freshness": freshness_bonus,
+            "multi_link": multi_link_bonus, "brevity": brevity_bonus, "total": total}
 
 
 def last_served_domains(store: dict) -> set[str]:
