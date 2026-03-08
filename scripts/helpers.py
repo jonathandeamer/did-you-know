@@ -286,7 +286,7 @@ def score_hook(
     Freshness, multi-link, and brevity bonuses apply to all hooks.
     Untagged hooks (tags: None) and low-confidence hooks score 0 for domain/tone.
     Domain score is the sum across all domain tags (1–2 tags).
-    Tags shared with prev_domains have their per-tag score multiplied by 0.8.
+    Tags shared with prev_domains incur a flat −0.1 diversity penalty per tag.
     Each URL beyond the first adds 0.1 (multi-link bonus).
     Hooks under 17 words get a brevity bonus: <10 words → +0.1, 10-16 words → +0.05.
     """
@@ -306,7 +306,7 @@ def score_hook(
     domain_tags = tags.get("domain") or []
     tone_tag = tags.get("tone")
     domain_score = sum(
-        (domain_prefs.get(tag) or 0) * (0.8 if tag in prev else 1.0)
+        (domain_prefs.get(tag) or 0) + (-0.1 if tag in prev else 0.0)
         for tag in domain_tags
     )
     tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0

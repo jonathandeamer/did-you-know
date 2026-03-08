@@ -485,7 +485,8 @@ class TestScoreHook:
     def test_prev_domain_reduces_matching_tag_score(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
-        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(0.8)
+        # 1 (pref) − 0.1 (diversity penalty) = 0.9
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(0.9)
 
     def test_prev_domain_does_not_affect_non_matching_tag(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}}
@@ -495,8 +496,19 @@ class TestScoreHook:
     def test_prev_domain_only_penalises_shared_tag_in_multi_domain_hook(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science", "history"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
-        # science gets ×0.8, history gets ×1.0 → 0.8 + 1.0 = 1.8
-        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(1.8)
+        # science: 1 − 0.1 = 0.9, history: 1 + 0 = 1.0 → 1.9
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(1.9)
+
+    def test_prev_domain_penalises_neutral_preference_domain(self):
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        # No preference for science — penalty still applies
+        assert helpers.score_hook(hook, {}, prev_domains={"science"}) == pytest.approx(-0.1)
+
+    def test_prev_domain_increases_penalty_for_disliked_domain(self):
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": -1}, "tone": {}}
+        # −1 (pref) − 0.1 (diversity penalty) = −1.1
+        assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(-1.1)
 
     def test_prev_domains_none_applies_no_penalty(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
