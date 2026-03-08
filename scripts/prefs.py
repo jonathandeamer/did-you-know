@@ -65,6 +65,8 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"{dim}:")
         for tag, val in sorted(tags.items()):
             word = VALUE_MAP_INV.get(val, str(val))
+            if val not in VALUE_MAP_INV:
+                print(f"Warning: unexpected value {val!r} for {dim}.{tag} — expected -1, 0, or 1", file=sys.stderr)
             print(f"  {tag}: {word}")
     return 0
 
@@ -86,6 +88,8 @@ def cmd_get(args: argparse.Namespace) -> int:
         print(f"Cannot read prefs: {exc}", file=sys.stderr)
         return 1
     val = (data.get(args.dimension) or {}).get(args.tag, 0)
+    if val not in VALUE_MAP_INV:
+        print(f"Warning: unexpected value {val!r} for {args.dimension}.{args.tag} — expected -1, 0, or 1", file=sys.stderr)
     print(VALUE_MAP_INV.get(val, str(val)))
     return 0
 

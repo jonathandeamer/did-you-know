@@ -96,6 +96,22 @@ def test_list_prints_prefs(tmp_path, monkeypatch, capsys):
     assert "neutral" in out
 
 
+def test_list_warns_on_out_of_range_value(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 5}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["list"])
+
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "history" in captured.out
+    assert "5" in captured.out
+    assert "domain.history" in captured.err
+
+
 def test_list_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
     prefs_path = tmp_path / "dyk-prefs.json"
     monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
@@ -147,6 +163,21 @@ def test_get_unknown_tag(tmp_path, monkeypatch, capsys):
 
     assert result == 1
     assert "Unknown tag" in capsys.readouterr().err
+
+
+def test_get_warns_on_out_of_range_value(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 5}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "domain", "history"])
+
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "5" in captured.out
+    assert "domain.history" in captured.err
 
 
 def test_get_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
