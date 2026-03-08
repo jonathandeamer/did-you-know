@@ -328,17 +328,28 @@ class TestNextHook:
         result = serve_hook.next_hook(store, prefs)
         assert "history fact" in result
 
-    def test_empty_prefs_serves_most_recent_first(self):
+    def test_score_beats_recency_across_collections(self):
+        prefs = {"domain": {"science": 1}, "tone": {}}
         store = {
             "collections": [
-                {"date": "2026-02-23", "fetched_at": "2026-02-23T12:00:00Z",
-                 "hooks": [{"text": "old fact", "urls": [], "returned": False}]},
-                {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
-                 "hooks": [{"text": "new fact", "urls": [], "returned": False}]},
+                {
+                    "date": "2026-02-23",
+                    "hooks": [
+                        {"text": "science fact", "urls": [], "returned": False,
+                         "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
+                    ],
+                },
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "history fact", "urls": [], "returned": False,
+                         "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
+                    ],
+                },
             ]
         }
-        result = serve_hook.next_hook(store, {})
-        assert "new fact" in result
+        result = serve_hook.next_hook(store, prefs)
+        assert "science fact" in result
 
 
 class TestMain:
