@@ -48,6 +48,7 @@ openclaw cron add \
   --name "DYK refresh" \
   --every 12h \
   --session isolated \
+  --channel none \
   --message "Refresh the DYK cache and tag new hooks"
 ```
 
