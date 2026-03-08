@@ -104,6 +104,14 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
       2. Most recently fetched collection first
       3. Shortest display text (character count)
       4. Random selection among remaining ties
+
+    Score storage (written to the cache on every call):
+      candidate_score  Written to every evaluated (unserved) hook. Reflects the
+                       score at the time of this call. Overwritten on subsequent
+                       calls — may be stale if prefs or prev_domains have changed.
+      served_score     Written only to the winning hook, alongside returned_at.
+                       Never overwritten. Definitive record of why this hook was
+                       chosen at the moment it was served.
     """
     if prefs is None:
         prefs = {}
