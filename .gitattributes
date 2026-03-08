@@ -7,3 +7,4 @@
 CONTRIBUTING.md export-ignore
 pyproject.toml  export-ignore
 tests/          export-ignore
+tagging/dyk-prefs.json export-ignore
