@@ -68,3 +68,38 @@ def test_init_refuses_if_file_exists(tmp_path, monkeypatch, capsys):
 
     assert result == 1
     assert "already exists" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# list
+# ---------------------------------------------------------------------------
+
+def _write_prefs(path, data):
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_list_prints_prefs(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 1, "science": -1}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["list"])
+
+    out = capsys.readouterr().out
+    assert result == 0
+    assert "history" in out
+    assert "like" in out
+    assert "science" in out
+    assert "dislike" in out
+
+
+def test_list_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
+    prefs_path = tmp_path / "dyk-prefs.json"
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+
+    result = prefs.main(["list"])
+
+    assert result == 1
+    assert "init" in capsys.readouterr().err

@@ -49,16 +49,36 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_list(args: argparse.Namespace) -> int:
+    if not PREFS_PATH.exists():
+        print(f"No prefs file found. Run: prefs.py init", file=sys.stderr)
+        return 1
+    try:
+        data = json.loads(PREFS_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"Cannot read prefs: {exc}", file=sys.stderr)
+        return 1
+    for dim, tags in sorted(data.items()):
+        print(f"{dim}:")
+        for tag, val in sorted(tags.items()):
+            word = VALUE_MAP_INV.get(val, str(val))
+            print(f"  {tag}: {word}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Manage DYK preferences.")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("init", help="Create prefs file (fails if already exists)")
+    sub.add_parser("list", help="Show all current preferences")
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
         return 1
     if args.command == "init":
         return cmd_init(args)
+    if args.command == "list":
+        return cmd_list(args)
     return 1
 
 
