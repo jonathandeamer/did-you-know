@@ -280,21 +280,34 @@ def score_hook(
     freshness_bonus: float = 0.0,
     prev_domains: set[str] | None = None,
 ) -> int | float:
-    """Score a hook based on user preferences.
+    """Score a hook for serving priority. Higher scores are served first.
 
-    Returns domain_score + tone_score + freshness_bonus + multi_link_bonus.
-    Freshness, multi-link, and brevity bonuses apply to all hooks.
-    Untagged hooks (tags: None) and low-confidence hooks score 0 for domain/tone.
-    Domain score is the sum across all domain tags (1–2 tags).
-    Tags shared with prev_domains incur a flat −0.2 diversity penalty per tag.
-    Each URL beyond the first adds 0.1 (multi-link bonus).
-    Hooks under 17 words get a brevity bonus: <10 words → +0.1, 10-16 words → +0.05.
+    Score = domain_score + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+
+    Preference scores (from prefs file, range −3 to +3):
+      domain_score  sum of pref scores for each domain tag (each tag: −1, 0, or +1)
+                    minus 0.2 per tag shared with the previously served hook's domains
+                    (diversity penalty applies even when pref score is 0, so identical-
+                    domain hooks are de-prioritised regardless of user preferences)
+      tone_score    pref score for the single tone tag (−1, 0, or +1)
+
+    Bonuses (applied to all hooks, including untagged and low-confidence):
+      freshness     +0.1 if the hook is from the most recently fetched collection
+      multi-link    +0.05 per URL beyond the first (two links → +0.05, three → +0.10)
+      brevity       +0.10 if < 13 words; +0.05 if 13–16 words; 0 if ≥ 17 words
+                    (thresholds from corpus analysis of 118k+ hooks: p10 ≈ 13, p25 ≈ 17)
+
+    Untagged hooks (tags: None) and low-confidence hooks skip preference scoring and
+    return only the sum of applicable bonuses. They remain eligible and are always served
+    eventually — negative preference scores are never used to withhold hooks.
     """
+    # --- Bonuses (apply to all hooks) ---
     urls = hook.get("urls") or []
     multi_link_bonus = max(0, len(urls) - 1) * 0.05
     word_count = len((hook.get("text") or "").split())
-    # Thresholds from corpus analysis of 118k+ hooks: p10 ≈ 13 words, p25 ≈ 17 words.
     brevity_bonus = 0.1 if word_count < 13 else (0.05 if word_count < 17 else 0.0)
+
+    # --- Preference scores (tagged, non-low-confidence hooks only) ---
     tags = hook.get("tags")
     if not tags or tags.get("low_confidence"):
         return freshness_bonus + multi_link_bonus + brevity_bonus

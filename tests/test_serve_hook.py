@@ -400,7 +400,7 @@ class TestNextHook:
         assert store["collections"][0]["hooks"][0]["returned_at"] == "2026-02-24T12:00:00Z"
 
     def test_domain_penalty_applied_to_previously_served_domain(self, monkeypatch):
-        """Hooks sharing the last served domain have that tag's score multiplied by 0.8."""
+        """Hooks sharing the last served domain incur a flat −0.2 diversity penalty per tag."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
@@ -409,14 +409,14 @@ class TestNextHook:
                 {
                     "date": "2026-02-24",
                     "hooks": [
-                        # Previously served science hook
+                        # Previously served science hook (returned_at used by last_served_domains)
                         {"text": "old science", "urls": [], "returned": True,
                          "returned_at": "2026-02-24T11:00:00Z",
                          "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
-                        # Science hook: score 1×0.8 = 0.8 (penalised)
+                        # Science hook: pref 1 − 0.2 (diversity penalty) = 0.8
                         {"text": "new science", "urls": [], "returned": False,
                          "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
-                        # History hook: score 1×1.0 = 1.0 (not penalised)
+                        # History hook: pref 1 + 0 (no penalty) = 1.0
                         {"text": "new history", "urls": [], "returned": False,
                          "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}},
                     ],

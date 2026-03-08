@@ -95,12 +95,20 @@ def format_hook(hook: dict) -> str:
 def next_hook(store: dict, prefs: dict | None = None) -> str:
     """Return the next unserved hook by score, or the exhausted message.
 
-    Hooks are scored by domain + tone preference, served highest first.
-    Ties broken by most recent collection, then randomly within a collection.
+    Scoring is delegated to score_hook() — see its docstring for the full model.
+    The freshness bonus (+0.1) is applied here for hooks in the most recently
+    fetched collection (coll_idx 0 in reversed order), before passing to score_hook.
+
+    Serving priority (highest to lowest):
+      1. Score descending (see score_hook for full breakdown)
+      2. Most recently fetched collection first
+      3. Shortest display text (character count)
+      4. Random selection among remaining ties
     """
     if prefs is None:
         prefs = {}
     collections = store.get("collections", [])
+    # Domains of the last served hook, used to apply the diversity penalty in score_hook.
     prev_domains = last_served_domains(store)
     candidates = []
     for coll_idx, coll in enumerate(reversed(collections)):  # coll_idx 0 = newest
@@ -111,7 +119,7 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
                 candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, char_count, hook))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
-    # Sort: score desc → newest collection → shortest text → random
+    # Primary sort. Ties after this are broken by steps 2–4 above.
     candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
     top_score, top_coll_idx, top_chars = candidates[0][0], candidates[0][1], candidates[0][2]
     tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx and c[2] == top_chars]
