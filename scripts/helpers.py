@@ -274,7 +274,7 @@ def load_prefs() -> dict:
     return data
 
 
-def score_hook(hook: dict, prefs: dict) -> int:
+def score_hook(hook: dict, prefs: dict) -> int | float:
     """Score a hook based on user preferences.
 
     Returns domain_score + tone_score.
@@ -284,8 +284,10 @@ def score_hook(hook: dict, prefs: dict) -> int:
     tags = hook.get("tags")
     if not tags or tags.get("low_confidence"):
         return 0
-    domain_prefs = prefs.get("domain") or {}
-    tone_prefs = prefs.get("tone") or {}
+    domain_prefs = prefs.get("domain")
+    domain_prefs = domain_prefs if isinstance(domain_prefs, dict) else {}
+    tone_prefs = prefs.get("tone")
+    tone_prefs = tone_prefs if isinstance(tone_prefs, dict) else {}
     domain_tags = tags.get("domain") or []
     tone_tag = tags.get("tone")
     domain_score = sum((domain_prefs.get(tag) or 0) for tag in domain_tags)

@@ -459,6 +459,16 @@ class TestScoreHook:
         prefs = {"domain": {"science": 1, "military_history": -1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 0
 
+    def test_non_dict_domain_prefs_treated_as_empty(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": "not-a-dict", "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 0
+
+    def test_non_dict_tone_prefs_treated_as_empty(self):
+        hook = {"tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
+        prefs = {"domain": {}, "tone": "not-a-dict"}
+        assert helpers.score_hook(hook, prefs) == 0
+
 
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):
