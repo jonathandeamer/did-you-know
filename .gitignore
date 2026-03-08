@@ -5,6 +5,7 @@
 !.gitattributes
 !.gitignore
 !.gitmessage
+!CLAUDE.md
 !CONTRIBUTING.md
 !LICENSE
 !pyproject.toml

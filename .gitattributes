@@ -4,6 +4,7 @@
 .gitignore      export-ignore
 .gitmessage     export-ignore
 .githooks/      export-ignore
+CLAUDE.md       export-ignore
 CONTRIBUTING.md export-ignore
 pyproject.toml  export-ignore
 tests/          export-ignore
