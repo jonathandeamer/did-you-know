@@ -5,6 +5,7 @@
 .gitmessage     export-ignore
 .githooks/      export-ignore
 CLAUDE.md       export-ignore
+README.md       export-ignore
 CONTRIBUTING.md export-ignore
 docs/           export-ignore
 pyproject.toml  export-ignore
