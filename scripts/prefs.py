@@ -69,11 +69,35 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_get(args: argparse.Namespace) -> int:
+    if not PREFS_PATH.exists():
+        print(f"No prefs file found. Run: prefs.py init", file=sys.stderr)
+        return 1
+    vocab = _load_vocab()
+    if args.dimension not in vocab:
+        print(f"Unknown dimension: {args.dimension!r}. Valid: {sorted(vocab)}", file=sys.stderr)
+        return 1
+    if args.tag not in vocab[args.dimension]:
+        print(f"Unknown tag: {args.tag!r}. Valid for {args.dimension!r}: {sorted(vocab[args.dimension])}", file=sys.stderr)
+        return 1
+    try:
+        data = json.loads(PREFS_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"Cannot read prefs: {exc}", file=sys.stderr)
+        return 1
+    val = (data.get(args.dimension) or {}).get(args.tag, 0)
+    print(VALUE_MAP_INV.get(val, str(val)))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Manage DYK preferences.")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("init", help="Create prefs file (fails if already exists)")
     sub.add_parser("list", help="Show all current preferences")
+    get_p = sub.add_parser("get", help="Get preference for a tag")
+    get_p.add_argument("dimension")
+    get_p.add_argument("tag")
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -82,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_init(args)
     if args.command == "list":
         return cmd_list(args)
+    if args.command == "get":
+        return cmd_get(args)
     return 1
 
 

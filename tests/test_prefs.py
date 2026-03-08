@@ -104,3 +104,58 @@ def test_list_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
 
     assert result == 1
     assert "init" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# get
+# ---------------------------------------------------------------------------
+
+def test_get_returns_word(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 1}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "domain", "history"])
+
+    assert result == 0
+    assert "like" in capsys.readouterr().out
+
+
+def test_get_unknown_dimension(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "badDim", "history"])
+
+    assert result == 1
+    assert "Unknown dimension" in capsys.readouterr().err
+
+
+def test_get_unknown_tag(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "domain", "badTag"])
+
+    assert result == 1
+    assert "Unknown tag" in capsys.readouterr().err
+
+
+def test_get_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "domain", "history"])
+
+    assert result == 1
+    assert "init" in capsys.readouterr().err
