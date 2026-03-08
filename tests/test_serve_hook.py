@@ -312,6 +312,22 @@ class TestNextHook:
             seen.add("A" if "hook A" in result else "B")
         assert seen == {"A", "B"}
 
+    def test_tiebreak_shortest_text_before_random(self):
+        """When score and collection tie, the hook with fewer characters is served."""
+        store = {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "hooks": [
+                        {"text": "a longer hook text here", "urls": [], "returned": False, "tags": None},
+                        {"text": "short hook", "urls": [], "returned": False, "tags": None},
+                    ],
+                }
+            ]
+        }
+        result = serve_hook.next_hook(store, {})
+        assert "short hook" in result
+
     def test_negative_scored_hooks_still_served(self):
         prefs = {"domain": {"history": -1}, "tone": {}}
         store = {

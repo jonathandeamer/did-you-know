@@ -107,14 +107,15 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
         freshness_bonus = 0.1 if coll_idx == 0 else 0.0
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
-                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, hook))
+                char_count = len(hook.get("text") or "")
+                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, char_count, hook))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
-    # Sort: score descending, then most recent collection first (coll_idx=0 is newest)
-    candidates.sort(key=lambda x: (-x[0], x[1]))
-    top_score, top_coll_idx = candidates[0][0], candidates[0][1]
-    tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx]
-    hook = random.choice(tied)[2]
+    # Sort: score desc → newest collection → shortest text → random
+    candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
+    top_score, top_coll_idx, top_chars = candidates[0][0], candidates[0][1], candidates[0][2]
+    tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx and c[2] == top_chars]
+    hook = random.choice(tied)[3]
     hook["returned"] = True
     hook["returned_at"] = to_iso_z(now_utc())
     return format_hook(hook)
