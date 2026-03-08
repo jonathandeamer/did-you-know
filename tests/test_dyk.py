@@ -30,6 +30,7 @@ class TestBackwardsCompatibility:
     # TODO: add backwards-compat tests pinning PREFS_PATH location
     #       (~/.openclaw/dyk-prefs.json) and ensuring that a missing prefs
     #       file serves hooks with neutral scoring (score 0).
+    #       https://github.com/jonathandeamer/did-you-know/issues/5
 
     # --- Cache file location ---
 
