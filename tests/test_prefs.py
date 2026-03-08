@@ -159,3 +159,87 @@ def test_get_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
 
     assert result == 1
     assert "init" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# set
+# ---------------------------------------------------------------------------
+
+def test_set_updates_value(tmp_path, monkeypatch):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0, "science": 0}, "tone": {"straight": 0, "surprising": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "domain", "history", "like"])
+
+    assert result == 0
+    data = json.loads(prefs_path.read_text())
+    assert data["domain"]["history"] == 1
+    assert data["domain"]["science"] == 0  # untouched
+
+
+def test_set_dislike(tmp_path, monkeypatch):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "domain", "history", "dislike"])
+
+    assert result == 0
+    data = json.loads(prefs_path.read_text())
+    assert data["domain"]["history"] == -1
+
+
+def test_set_invalid_value(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "domain", "history", "love"])
+
+    assert result == 1
+    assert "like" in capsys.readouterr().err
+
+
+def test_set_unknown_dimension(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "badDim", "history", "like"])
+
+    assert result == 1
+    assert "Unknown dimension" in capsys.readouterr().err
+
+
+def test_set_unknown_tag(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": {"history": 0}, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "domain", "badTag", "like"])
+
+    assert result == 1
+    assert "Unknown tag" in capsys.readouterr().err
+
+
+def test_set_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["set", "domain", "history", "like"])
+
+    assert result == 1
+    assert "init" in capsys.readouterr().err

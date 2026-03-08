@@ -90,6 +90,28 @@ def cmd_get(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_set(args: argparse.Namespace) -> int:
+    if not PREFS_PATH.exists():
+        print(f"No prefs file found. Run: prefs.py init", file=sys.stderr)
+        return 1
+    vocab = _load_vocab()
+    if args.dimension not in vocab:
+        print(f"Unknown dimension: {args.dimension!r}. Valid: {sorted(vocab)}", file=sys.stderr)
+        return 1
+    if args.tag not in vocab[args.dimension]:
+        print(f"Unknown tag: {args.tag!r}. Valid for {args.dimension!r}: {sorted(vocab[args.dimension])}", file=sys.stderr)
+        return 1
+    try:
+        data = json.loads(PREFS_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"Cannot read prefs: {exc}", file=sys.stderr)
+        return 1
+    data.setdefault(args.dimension, {})[args.tag] = VALUE_MAP[args.value]
+    _atomic_write(PREFS_PATH, data)
+    print(f"Set {args.dimension}.{args.tag} = {args.value}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Manage DYK preferences.")
     sub = parser.add_subparsers(dest="command")
@@ -98,7 +120,15 @@ def main(argv: list[str] | None = None) -> int:
     get_p = sub.add_parser("get", help="Get preference for a tag")
     get_p.add_argument("dimension")
     get_p.add_argument("tag")
-    args = parser.parse_args(argv)
+    set_p = sub.add_parser("set", help="Set preference for a tag")
+    set_p.add_argument("dimension")
+    set_p.add_argument("tag")
+    set_p.add_argument("value", choices=list(VALUE_MAP))
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        code = exc.code if exc.code is not None else 1
+        return 1 if code != 0 else 0
     if args.command is None:
         parser.print_help()
         return 1
@@ -108,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_list(args)
     if args.command == "get":
         return cmd_get(args)
+    if args.command == "set":
+        return cmd_set(args)
     return 1
 
 
