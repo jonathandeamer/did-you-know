@@ -39,11 +39,11 @@
 !tests/test_write_tags.py
 !tests/test_prefs.py
 
-# Tagging
-!tagging/
-!tagging/tagging-guide.md
-!tagging/tags.csv
-!tagging/dyk-prefs.json
+# References
+!references/
+!references/tagging-guide.md
+!references/tags.csv
+!references/dyk-prefs.json
 
 # Docs
 !docs/

@@ -168,9 +168,9 @@ Key test patterns:
 `.gitignore` uses a `*` deny-all pattern: **every new file must be explicitly whitelisted** with a `!` entry or git will ignore it. When adding a new tracked file, add it to `.gitignore` first.
 
 ### .gitattributes — release archive trimming
-GitHub release archives (zip/tarball) should contain only what a user needs to run the skill: `SKILL.md`, `scripts/`, and `tagging/`. Development scaffolding is stripped via `export-ignore`:
+GitHub release archives (zip/tarball) should contain only what a user needs to run the skill: `SKILL.md`, `scripts/`, and `references/`. Development scaffolding is stripped via `export-ignore`:
 - Always `export-ignore`: `.gitattributes`, `.gitignore`, `.gitmessage`, `.githooks/`, `CONTRIBUTING.md`, `pyproject.toml`, `tests/`
-- Never `export-ignore`: `SKILL.md`, `scripts/*.py`, `tagging/`
+- Never `export-ignore`: `SKILL.md`, `scripts/*.py`, `references/`
 
 When adding a new file, decide which category it belongs to and update `.gitattributes` accordingly. If unsure whether a file should be tracked or export-ignored, ask before acting.
 

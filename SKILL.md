@@ -118,8 +118,8 @@ When asked to refresh the DYK facts cache and tag new hooks:
    If there are none, stop — nothing to tag.
 
 3. Assign tags for all untagged hooks at once — do not loop across multiple turns or tool calls. For each hook, assign tags using:
-   - Tagging guide: `{baseDir}/tagging/tagging-guide.md`
-   - Vocabulary: `{baseDir}/tagging/tags.csv`
+   - Tagging guide: `{baseDir}/references/tagging-guide.md`
+   - Vocabulary: `{baseDir}/references/tags.csv`
 
    Output requirements:
    - Use only tag values defined in `tags.csv`

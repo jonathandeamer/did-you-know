@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from write_tags import load_vocabulary
 from helpers import PREFS_PATH
 
-TAGS_CSV = Path(__file__).parent.parent / "tagging" / "tags.csv"
+TAGS_CSV = Path(__file__).parent.parent / "references" / "tags.csv"
 
 VALUE_MAP = {"like": 1, "neutral": 0, "dislike": -1}
 VALUE_MAP_INV = {v: k for k, v in VALUE_MAP.items()}
