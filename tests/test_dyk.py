@@ -27,11 +27,6 @@ import dyk  # shim — keeps dyk.main() working in backwards-compat tests
 class TestBackwardsCompatibility:
     """Pin the external-facing contract so breaking changes are caught explicitly."""
 
-    # TODO: add backwards-compat tests pinning PREFS_PATH location
-    #       (~/.openclaw/dyk-prefs.json) and ensuring that a missing prefs
-    #       file serves hooks with neutral scoring (score 0).
-    #       https://github.com/jonathandeamer/did-you-know/issues/5
-
     # --- Cache file location ---
 
     def test_cache_path(self):
@@ -40,6 +35,35 @@ class TestBackwardsCompatibility:
         Moving this silently abandons existing user caches.
         """
         assert helpers.DATA_PATH == Path.home() / ".openclaw" / "dyk-facts.json"
+
+    def test_prefs_path(self):
+        """PREFS_PATH must stay at ~/.openclaw/dyk-prefs.json.
+
+        Moving this silently abandons existing user preferences.
+        """
+        assert helpers.PREFS_PATH == Path.home() / ".openclaw" / "dyk-prefs.json"
+
+    def test_missing_prefs_file_serves_hooks_normally(self, monkeypatch, tmp_path, capsys):
+        """When no prefs file exists, hooks are served with neutral scoring.
+
+        Users who never created a prefs file must see identical behaviour to
+        before the preference-based serving feature was introduced.
+        """
+        data_path = tmp_path / "dyk.json"
+        monkeypatch.setattr(helpers, "DATA_PATH", data_path)
+        monkeypatch.setattr(helpers, "PREFS_PATH", tmp_path / "dyk-prefs.json")  # does not exist
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(
+            serve_hook,
+            "collect_hooks",
+            lambda **_kwargs: [{"text": "a fact", "urls": ["https://en.wikipedia.org/wiki/Foo"], "returned": False}],
+        )
+
+        result = dyk.main()
+        captured = capsys.readouterr()
+
+        assert result == 0
+        assert captured.out.startswith("Did you know that a fact?")
 
     # --- stdout contract ---
 
