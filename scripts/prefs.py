@@ -90,7 +90,11 @@ def cmd_get(args: argparse.Namespace) -> int:
     except (json.JSONDecodeError, OSError) as exc:
         print(f"Cannot read prefs: {exc}", file=sys.stderr)
         return 1
-    val = (data.get(args.dimension) or {}).get(args.tag, 0)
+    dim_data = data.get(args.dimension)
+    if not isinstance(dim_data, dict):
+        print(f"Prefs file is malformed: expected object for {args.dimension!r}", file=sys.stderr)
+        return 1
+    val = dim_data.get(args.tag, 0)
     if val not in VALUE_MAP_INV:
         print(f"Warning: unexpected value {val!r} for {args.dimension}.{args.tag} — expected -1, 0, or 1", file=sys.stderr)
     print(VALUE_MAP_INV.get(val, str(val)))

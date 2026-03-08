@@ -152,6 +152,19 @@ def test_get_returns_word(tmp_path, monkeypatch, capsys):
     assert "like" in capsys.readouterr().out
 
 
+def test_get_warns_on_non_dict_dimension(tmp_path, monkeypatch, capsys):
+    vocab = _make_vocab_csv(tmp_path)
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": 5, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+    monkeypatch.setattr(prefs, "TAGS_CSV", vocab)
+
+    result = prefs.main(["get", "domain", "history"])
+
+    assert result == 1
+    assert "domain" in capsys.readouterr().err
+
+
 def test_get_unknown_dimension(tmp_path, monkeypatch, capsys):
     vocab = _make_vocab_csv(tmp_path)
     prefs_path = tmp_path / "dyk-prefs.json"
