@@ -7,8 +7,29 @@ metadata: {"openclaw":{"emoji":"❓","requires":{"bins":["python3"]}}}
 
 # Did You Know
 
-Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) section highlights well-sourced facts from recently created or expanded articles. It's curated and refreshed at least daily by volunteers. Schedule it to run regularly using cron for a steady supply of conversation starters!
+Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) section highlights well-sourced facts from recently created or expanded articles. It's curated and refreshed at least daily by volunteers.
 
+Use this skill when the user asks for an interesting fact, wants daily trivia delivered automatically, or wants to customise which kinds of facts they see.
+
+This skill can help with:
+- Sharing a "Did you know?" fact on demand
+- Scheduling daily fact delivery
+- Customising which facts surface using tag preferences
+- Keeping the fact queue topped up by refreshing it automatically
+
+When guiding the user, focus on what the skill can do rather than the underlying commands. Do not surface bash commands by default. Only show commands if the user explicitly asks for technical details or wants to run them manually.
+
+## Commands
+
+| Task | Command |
+|------|---------|
+| Share a fact | `python3 {baseDir}/scripts/dyk.py` |
+| Initialise preferences | `python3 {baseDir}/scripts/prefs.py init` |
+| List preferences | `python3 {baseDir}/scripts/prefs.py list` |
+| Get a preference | `python3 {baseDir}/scripts/prefs.py get domain science` |
+| Set a preference | `python3 {baseDir}/scripts/prefs.py set domain science like` |
+
+For fetching and refreshing facts (usually scheduled automatically), see **Refresh workflow** below.
 
 ## Serving a fact
 
@@ -41,9 +62,9 @@ Something went wrong with the fact-fetching; please try again later.
 
 ## Managing preferences
 
-Facts are scored at serve time. Each `like` or `dislike` preference adds +1 (`like`) or −1 (`dislike`) to the score (domain tags are summed; tone is a single tag). On top of that, small automatic bonuses apply to all facts: recency, brevity, and multiple source URLs are rewarded, while consecutive facts from the same domain are lightly penalised.
+Facts are scored using user preferences. Liked tags increase the score and disliked tags reduce it. Recency and variety bonuses are applied automatically.
 
-### Setup
+### Setup preferences (once)
 
 ```bash
 python3 {baseDir}/scripts/prefs.py init
@@ -75,30 +96,22 @@ The `set` command's value argument accepts: `like`, `neutral`, `dislike`.
 
 **tone:** `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
 
+If the user wants to customise preferences and hasn't set up a prefs file yet, walk them through `init` → `list` → `set` one step at a time, confirming each succeeds before continuing.
 
-## Setting up automated refresh
 
-To keep the fact queue topped up automatically, set a cron job to run every 12 hours:
+## Scheduling fact delivery (once)
 
-```bash
-openclaw cron add \
-  --name "DYK refresh" \
-  --every 12h \
-  --session isolated \
-  --channel none \
-  --message "Refresh the DYK cache and tag new hooks"
-```
+To receive a daily fact automatically, set a cron job to run `python3 {baseDir}/scripts/dyk.py`
+
+## Setting up automated refresh (once)
+
+To keep the fact queue topped up automatically, set a cron job to run every 12 hours with the message "Refresh the DYK cache and tag new hooks".
 
 The cron agent will follow the refresh workflow below each time it runs.
 
-To check the job is running: `openclaw cron list`
-
-To trigger it immediately: `openclaw cron run <id>`
-
-
 ## Refresh workflow
 
-When asked to refresh the DYK cache and tag new hooks:
+When asked to refresh the DYK facts cache and tag new hooks:
 
 1. Run: `python3 {baseDir}/scripts/fetch_hooks.py`
 
@@ -110,12 +123,13 @@ When asked to refresh the DYK cache and tag new hooks:
 
    If there are none, stop — nothing to tag.
 
-3. For each untagged hook, assign tags using:
+3. Assign tags for all untagged hooks at once — do not loop across multiple turns or tool calls. For each hook, assign tags using:
    - Tagging guide: `{baseDir}/tagging/tagging-guide.md`
    - Vocabulary: `{baseDir}/tagging/tags.csv`
 
    Output requirements:
    - Use only tag values defined in `tags.csv`
+   - If tagging confidence is low, set "low_confidence": true.
    - Write valid JSON only — no comments or explanations
    - Collect results into a single JSON array
    - Write the array to a temporary file such as `/tmp/dyk-tags.json`
