@@ -18,7 +18,7 @@ When invoked, the default behaviour is to share the next fact from the queue:
 python3 {baseDir}/scripts/dyk.py
 ```
 
-Prints one fact:
+Prints one fact. Return it to the user verbatim:
 
 ```
 Did you know that heavy-metal guitarist Kiki Wong played drums for Taylor Swift before joining the Smashing Pumpkins?
@@ -48,6 +48,7 @@ openclaw cron add \
   --name "DYK refresh" \
   --every 12h \
   --session isolated \
+  --channel none \
   --message "Refresh the DYK cache and tag new hooks"
 ```
 
