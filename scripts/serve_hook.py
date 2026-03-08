@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import random
 import sys
 import urllib.parse
 from pathlib import Path
@@ -11,9 +12,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from helpers import (
     collect_hooks,
+    last_served_domains,
+    load_prefs,
     load_store,
     now_utc,
     save_store,
+    score_hook,
     stored_urls,
     to_iso_z,
     trim_store,
@@ -88,15 +92,41 @@ def format_hook(hook: dict) -> str:
     return message + MSG_BODY_SEPARATOR + MSG_URL_SEPARATOR.join(urls)
 
 
-def next_hook(store: dict) -> str:
-    """Return the next unserved hook and mark it as returned, or the exhausted message."""
+def next_hook(store: dict, prefs: dict | None = None) -> str:
+    """Return the next unserved hook by score, or the exhausted message.
+
+    Scoring is delegated to score_hook() — see its docstring for the full model.
+    The freshness bonus (+0.1) is applied here for hooks in the most recently
+    fetched collection (coll_idx 0 in reversed order), before passing to score_hook.
+
+    Serving priority (highest to lowest):
+      1. Score descending (see score_hook for full breakdown)
+      2. Most recently fetched collection first
+      3. Shortest display text (character count)
+      4. Random selection among remaining ties
+    """
+    if prefs is None:
+        prefs = {}
     collections = store.get("collections", [])
-    for coll in reversed(collections):
+    # Domains of the last served hook, used to apply the diversity penalty in score_hook.
+    prev_domains = last_served_domains(store)
+    candidates = []
+    for coll_idx, coll in enumerate(reversed(collections)):  # coll_idx 0 = newest
+        freshness_bonus = 0.1 if coll_idx == 0 else 0.0
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
-                hook["returned"] = True
-                return format_hook(hook)
-    return "No more facts to share today; check back tomorrow!"
+                char_count = len(hook.get("text") or "")
+                candidates.append((score_hook(hook, prefs, freshness_bonus, prev_domains), coll_idx, char_count, hook))
+    if not candidates:
+        return "No more facts to share today; check back tomorrow!"
+    # Primary sort. Ties after this are broken by steps 2–4 above.
+    candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
+    top_score, top_coll_idx, top_chars = candidates[0][0], candidates[0][1], candidates[0][2]
+    tied = [c for c in candidates if c[0] == top_score and c[1] == top_coll_idx and c[2] == top_chars]
+    hook = random.choice(tied)[3]
+    hook["returned"] = True
+    hook["returned_at"] = to_iso_z(now_utc())
+    return format_hook(hook)
 
 
 def main() -> int:
@@ -112,7 +142,8 @@ def main() -> int:
             pass
         print("Something went wrong with the fact-fetching; please try again later.")
         return 1
-    result = next_hook(store)
+    prefs = load_prefs()
+    result = next_hook(store, prefs)
     save_store(store)
     print(result)
     return 0

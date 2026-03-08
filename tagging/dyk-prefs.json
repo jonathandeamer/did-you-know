@@ -1,0 +1,35 @@
+{
+  "domain": {
+    "history": 0,
+    "military_history": 0,
+    "science": 0,
+    "medicine_health": 0,
+    "technology": 0,
+    "economics_business": 0,
+    "sports": 0,
+    "music": 0,
+    "film": 0,
+    "television": 0,
+    "journalism": 0,
+    "literature": 0,
+    "visual_art": 0,
+    "performing_arts": 0,
+    "places": 0,
+    "animals": 0,
+    "nature": 0,
+    "religion": 0,
+    "mythology_folklore": 0,
+    "language_linguistics": 0
+  },
+  "tone": {
+    "straight": 0,
+    "surprising": 0,
+    "quirky": 0,
+    "whimsical": 0,
+    "dark": 0,
+    "inspiring": 0,
+    "poignant": 0,
+    "dramatic": 0,
+    "provocative": 0
+  }
+}

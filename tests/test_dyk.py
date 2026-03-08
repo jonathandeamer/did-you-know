@@ -27,6 +27,11 @@ import dyk  # shim — keeps dyk.main() working in backwards-compat tests
 class TestBackwardsCompatibility:
     """Pin the external-facing contract so breaking changes are caught explicitly."""
 
+    # TODO: add backwards-compat tests pinning PREFS_PATH location
+    #       (~/.openclaw/dyk-prefs.json) and ensuring that a missing prefs
+    #       file serves hooks with neutral scoring (score 0).
+    #       https://github.com/jonathandeamer/did-you-know/issues/5
+
     # --- Cache file location ---
 
     def test_cache_path(self):

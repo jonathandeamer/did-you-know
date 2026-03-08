@@ -33,6 +33,7 @@ RE_BOLD_SECTION = re.compile(r"'''(.*?)'''", re.DOTALL)
 
 # On-disk cache location and retention.
 DATA_PATH = Path.home() / ".openclaw" / "dyk-facts.json"
+PREFS_PATH = Path.home() / ".openclaw" / "dyk-prefs.json"
 MAX_HOOK_AGE_DAYS = 8  # drop collections fetched this many days ago or more
 
 # Refresh schedule: how often to hit the API.
@@ -251,6 +252,103 @@ def save_store(store: dict) -> None:
     except Exception:
         tmp_path.unlink(missing_ok=True)
         raise
+
+
+def load_prefs() -> dict:
+    """Load user tag preferences from PREFS_PATH.
+
+    Returns {} if the file is missing (silently) or contains invalid JSON
+    (warning to stderr).
+    """
+    try:
+        text = PREFS_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        print(f"DYK: invalid prefs file ({PREFS_PATH}): {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def score_hook(
+    hook: dict,
+    prefs: dict,
+    freshness_bonus: float = 0.0,
+    prev_domains: set[str] | None = None,
+) -> int | float:
+    """Score a hook for serving priority. Higher scores are served first.
+
+    Score = domain_score + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+
+    Preference scores (from prefs file, range −3 to +3):
+      domain_score  sum of pref scores for each domain tag (each tag: −1, 0, or +1)
+                    minus 0.2 per tag shared with the previously served hook's domains
+                    (diversity penalty applies even when pref score is 0, so identical-
+                    domain hooks are de-prioritised regardless of user preferences)
+      tone_score    pref score for the single tone tag (−1, 0, or +1)
+
+    Bonuses (applied to all hooks, including untagged and low-confidence):
+      freshness     +0.1 if the hook is from the most recently fetched collection
+      multi-link    +0.05 per URL beyond the first (two links → +0.05, three → +0.10)
+      brevity       +0.10 if < 13 words; +0.05 if 13–16 words; 0 if ≥ 17 words
+                    (thresholds from corpus analysis of 118k+ hooks: p10 ≈ 13, p25 ≈ 17)
+
+    Untagged hooks (tags: None) and low-confidence hooks skip preference scoring and
+    return only the sum of applicable bonuses. They remain eligible and are always served
+    eventually — negative preference scores are never used to withhold hooks.
+    """
+    # --- Bonuses (apply to all hooks) ---
+    urls = hook.get("urls") or []
+    multi_link_bonus = max(0, len(urls) - 1) * 0.05
+    word_count = len((hook.get("text") or "").split())
+    brevity_bonus = 0.1 if word_count < 13 else (0.05 if word_count < 17 else 0.0)
+
+    # --- Preference scores (tagged, non-low-confidence hooks only) ---
+    tags = hook.get("tags")
+    if not tags or tags.get("low_confidence"):
+        return freshness_bonus + multi_link_bonus + brevity_bonus
+    domain_prefs = prefs.get("domain")
+    domain_prefs = domain_prefs if isinstance(domain_prefs, dict) else {}
+    tone_prefs = prefs.get("tone")
+    tone_prefs = tone_prefs if isinstance(tone_prefs, dict) else {}
+    prev = prev_domains or set()
+    domain_tags = tags.get("domain") or []
+    tone_tag = tags.get("tone")
+    domain_score = sum(
+        (domain_prefs.get(tag) or 0) + (-0.2 if tag in prev else 0.0)
+        for tag in domain_tags
+    )
+    tone_score = (tone_prefs.get(tone_tag) or 0) if tone_tag else 0
+    return domain_score + tone_score + freshness_bonus + multi_link_bonus + brevity_bonus
+
+
+def last_served_domains(store: dict) -> set[str]:
+    """Return the domain tags of the most recently served hook.
+
+    Uses returned_at timestamps to determine recency.
+    Returns an empty set if no hook has been served or the last hook is untagged.
+    """
+    best_hook = None
+    best_ts = None
+    for coll in store.get("collections", []):
+        for hook in coll.get("hooks", []):
+            ts_str = hook.get("returned_at")
+            if not ts_str:
+                continue
+            ts = parse_iso(ts_str)
+            if best_ts is None or ts > best_ts:
+                best_ts = ts
+                best_hook = hook
+    if best_hook is None:
+        return set()
+    tags = best_hook.get("tags")
+    if not tags:
+        return set()
+    return set(tags.get("domain") or [])
 
 
 def trim_store(store: dict, now: datetime) -> None:
