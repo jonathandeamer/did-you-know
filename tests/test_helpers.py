@@ -469,6 +469,16 @@ class TestScoreHook:
         prefs = {"domain": {}, "tone": "not-a-dict"}
         assert helpers.score_hook(hook, prefs) == 0
 
+    def test_freshness_bonus_added_to_score(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs, freshness_bonus=0.1) == pytest.approx(1.1)
+
+    def test_freshness_bonus_defaults_to_zero(self):
+        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        assert helpers.score_hook(hook, prefs) == 1
+
 
 class TestTrimStore:
     def test_drops_collections_older_than_max_age(self):

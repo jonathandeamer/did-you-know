@@ -351,6 +351,26 @@ class TestNextHook:
         result = serve_hook.next_hook(store, prefs)
         assert "science fact" in result
 
+    def test_freshness_bonus_passed_to_newest_collection(self, monkeypatch):
+        """next_hook passes freshness_bonus=0.1 for hooks in the most recent collection only."""
+        calls = []
+        original = helpers.score_hook
+
+        def recording(hook, prefs, freshness_bonus=0.0):
+            calls.append(freshness_bonus)
+            return original(hook, prefs, freshness_bonus)
+
+        monkeypatch.setattr(serve_hook, "score_hook", recording)
+        store = {
+            "collections": [
+                {"date": "2026-02-23", "hooks": [{"text": "old", "urls": [], "returned": False, "tags": None}]},
+                {"date": "2026-02-24", "hooks": [{"text": "new", "urls": [], "returned": False, "tags": None}]},
+            ]
+        }
+        serve_hook.next_hook(store, {})
+        assert 0.1 in calls
+        assert 0.0 in calls
+
 
 class TestMain:
     def test_saves_store_after_fetch_failure_with_no_cache(self, monkeypatch, tmp_path, capsys):

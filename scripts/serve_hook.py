@@ -102,9 +102,10 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
     collections = store.get("collections", [])
     candidates = []
     for coll_idx, coll in enumerate(reversed(collections)):
+        freshness_bonus = 0.1 if coll_idx == 0 else 0.0
         for hook in coll.get("hooks", []):
             if not hook.get("returned"):
-                candidates.append((score_hook(hook, prefs), coll_idx, hook))
+                candidates.append((score_hook(hook, prefs, freshness_bonus), coll_idx, hook))
     if not candidates:
         return "No more facts to share today; check back tomorrow!"
     # Sort: score descending, then most recent collection first (coll_idx=0 is newest)
