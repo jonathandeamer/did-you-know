@@ -64,17 +64,14 @@ Something went wrong with the fact-fetching; please try again later.
 
 Facts are scored using user preferences. Liked tags increase the score and disliked tags reduce it. Recency and variety bonuses are applied automatically.
 
-### Setup preferences (once)
-
-```bash
-python3 {baseDir}/scripts/prefs.py init
-```
-
-Creates `~/.openclaw/dyk-prefs.json` with every tag set to `neutral`. Fails if the file already exists.
+If the user wants to customise preferences, walk them through `init` (if necessary) → `list` → `set` one step at a time, giving them details of the tag options available. Remember, when guiding the user, focus on what the skill can do rather than the underlying commands. Do not surface bash commands by default. Only show commands if the user explicitly asks for technical details or wants to run them manually.
 
 ### Commands
 
 ```bash
+# Initialise preferences - creates ~/.openclaw/dyk-prefs.json with every tag set to neutral. Fails if the file already exists.
+python3 {baseDir}/scripts/prefs.py init
+
 # View all current preferences
 python3 {baseDir}/scripts/prefs.py list
 
@@ -95,9 +92,6 @@ The `set` command's value argument accepts: `like`, `neutral`, `dislike`.
 **domain:** `animals` · `economics_business` · `film` · `history` · `journalism` · `language_linguistics` · `literature` · `medicine_health` · `military_history` · `music` · `mythology_folklore` · `nature` · `performing_arts` · `places` · `religion` · `science` · `sports` · `technology` · `television` · `visual_art`
 
 **tone:** `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
-
-If the user wants to customise preferences and hasn't set up a prefs file yet, walk them through `init` → `list` → `set` one step at a time, confirming each succeeds before continuing.
-
 
 ## Scheduling fact delivery (once)
 
