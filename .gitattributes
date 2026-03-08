@@ -6,6 +6,7 @@
 .githooks/      export-ignore
 CLAUDE.md       export-ignore
 CONTRIBUTING.md export-ignore
+docs/           export-ignore
 pyproject.toml  export-ignore
 tests/          export-ignore
 tagging/dyk-prefs.json export-ignore

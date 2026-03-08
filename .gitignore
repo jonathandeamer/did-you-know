@@ -1,6 +1,11 @@
 # Deny-all whitelist: only explicitly allowed files are tracked.
 *
 
+# Docs
+!docs/
+!docs/plans/
+!docs/plans/*.md
+
 # Project root files
 !.gitattributes
 !.gitignore
