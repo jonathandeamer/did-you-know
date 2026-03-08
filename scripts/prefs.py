@@ -124,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     set_p.add_argument("dimension")
     set_p.add_argument("tag")
     set_p.add_argument("value", choices=list(VALUE_MAP))
+    # Catch argparse's SystemExit(2) on invalid args and normalise to return code 1.
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
