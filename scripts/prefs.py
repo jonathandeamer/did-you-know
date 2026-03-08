@@ -20,7 +20,11 @@ VALUE_MAP_INV = {v: k for k, v in VALUE_MAP.items()}
 
 
 def _load_vocab() -> dict[str, set[str]]:
-    return load_vocabulary(TAGS_CSV)
+    try:
+        return load_vocabulary(TAGS_CSV)
+    except OSError as exc:
+        print(f"Cannot load vocabulary: {exc}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 def _atomic_write(path: Path, data: dict) -> None:

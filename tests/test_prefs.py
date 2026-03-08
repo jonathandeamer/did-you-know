@@ -50,6 +50,11 @@ def test_init_creates_file(tmp_path, monkeypatch):
     assert result == 0
     data = json.loads(prefs_path.read_text())
     assert data == {"domain": {"history": 0, "science": 0}, "tone": {"straight": 0, "surprising": 0}}
+    raw = prefs_path.read_text()
+    parsed = json.loads(raw)
+    assert list(parsed.keys()) == sorted(parsed.keys())
+    for dim_tags in parsed.values():
+        assert list(dim_tags.keys()) == sorted(dim_tags.keys())
 
 
 def test_init_refuses_if_file_exists(tmp_path, monkeypatch, capsys):
