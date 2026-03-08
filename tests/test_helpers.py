@@ -416,113 +416,117 @@ class TestLoadPrefs:
 
 
 class TestScoreHook:
+    # Neutral text long enough (≥17 words) to avoid triggering the brevity bonus.
+    LONG = " ".join(["word"] * 20)
+
     def test_domain_preference_contributes_score(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 1
 
     def test_negative_domain_preference_contributes_score(self):
-        hook = {"tags": {"domain": ["military_history"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["military_history"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"military_history": -1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == -1
 
     def test_tone_preference_contributes_score(self):
-        hook = {"tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
         prefs = {"domain": {}, "tone": {"surprising": 1}}
         assert helpers.score_hook(hook, prefs) == 1
 
     def test_both_dimensions_sum(self):
-        hook = {"tags": {"domain": ["science"], "tone": "surprising", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "surprising", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {"surprising": 1}}
         assert helpers.score_hook(hook, prefs) == 2
 
-    def test_untagged_hook_scores_zero(self):
-        hook = {"text": "some fact", "urls": [], "returned": False, "tags": None}
+    def test_untagged_hook_scores_zero_for_preferences(self):
+        hook = {"text": self.LONG, "urls": [], "returned": False, "tags": None}
         assert helpers.score_hook(hook, {"domain": {"science": 1}}) == 0
 
-    def test_low_confidence_hook_scores_zero(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
+    def test_low_confidence_hook_scores_zero_for_preferences(self):
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 0
 
     def test_tag_absent_from_prefs_defaults_to_zero(self):
-        hook = {"tags": {"domain": ["animals"], "tone": "whimsical", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["animals"], "tone": "whimsical", "low_confidence": False}}
         assert helpers.score_hook(hook, {}) == 0
 
     def test_two_domain_tags_sum_their_scores(self):
-        hook = {"tags": {"domain": ["science", "medicine_health"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science", "medicine_health"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1, "medicine_health": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 2
 
     def test_two_domain_tags_mixed_scores(self):
-        hook = {"tags": {"domain": ["science", "military_history"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science", "military_history"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1, "military_history": -1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 0
 
     def test_non_dict_domain_prefs_treated_as_empty(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": "not-a-dict", "tone": {}}
         assert helpers.score_hook(hook, prefs) == 0
 
     def test_non_dict_tone_prefs_treated_as_empty(self):
-        hook = {"tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["history"], "tone": "surprising", "low_confidence": False}}
         prefs = {"domain": {}, "tone": "not-a-dict"}
         assert helpers.score_hook(hook, prefs) == 0
 
     def test_freshness_bonus_added_to_score(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, freshness_bonus=0.1) == pytest.approx(1.1)
 
     def test_freshness_bonus_defaults_to_zero(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs) == 1
 
     def test_prev_domain_reduces_matching_tag_score(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(0.8)
 
     def test_prev_domain_does_not_affect_non_matching_tag(self):
-        hook = {"tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["history"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"history": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == 1
 
     def test_prev_domain_only_penalises_shared_tag_in_multi_domain_hook(self):
-        hook = {"tags": {"domain": ["science", "history"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science", "history"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
         # science gets ×0.8, history gets ×1.0 → 0.8 + 1.0 = 1.8
         assert helpers.score_hook(hook, prefs, prev_domains={"science"}) == pytest.approx(1.8)
 
     def test_prev_domains_none_applies_no_penalty(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, prev_domains=None) == 1
 
     def test_prev_domains_empty_applies_no_penalty(self):
-        hook = {"tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
         assert helpers.score_hook(hook, prefs, prev_domains=set()) == 1
 
     def test_freshness_bonus_applied_to_untagged_hook(self):
-        hook = {"urls": [], "tags": None}
+        hook = {"text": self.LONG, "urls": [], "tags": None}
         assert helpers.score_hook(hook, {}, freshness_bonus=0.1) == pytest.approx(0.1)
 
     def test_freshness_bonus_applied_to_low_confidence_hook(self):
-        hook = {"urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
+        hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": True}}
         assert helpers.score_hook(hook, {}, freshness_bonus=0.1) == pytest.approx(0.1)
 
     def test_single_url_adds_no_bonus(self):
-        hook = {"urls": ["https://en.wikipedia.org/wiki/A"], "tags": None}
+        hook = {"text": self.LONG, "urls": ["https://en.wikipedia.org/wiki/A"], "tags": None}
         assert helpers.score_hook(hook, {}) == 0
 
     def test_two_urls_adds_point_one(self):
-        hook = {"urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"], "tags": None}
+        hook = {"text": self.LONG, "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"], "tags": None}
         assert helpers.score_hook(hook, {}) == pytest.approx(0.1)
 
     def test_three_urls_adds_point_two(self):
         hook = {
+            "text": self.LONG,
             "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B",
                      "https://en.wikipedia.org/wiki/C"],
             "tags": None,
@@ -530,16 +534,47 @@ class TestScoreHook:
         assert helpers.score_hook(hook, {}) == pytest.approx(0.2)
 
     def test_zero_urls_adds_no_bonus(self):
-        hook = {"urls": [], "tags": None}
+        hook = {"text": self.LONG, "urls": [], "tags": None}
         assert helpers.score_hook(hook, {}) == 0
 
     def test_multi_link_bonus_applies_to_tagged_hook(self):
         hook = {
+            "text": self.LONG,
             "urls": ["https://en.wikipedia.org/wiki/A", "https://en.wikipedia.org/wiki/B"],
             "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False},
         }
         prefs = {"domain": {"science": 1}, "tone": {}}
         # 1 (pref) + 0.1 (multi-link) = 1.1
+        assert helpers.score_hook(hook, prefs) == pytest.approx(1.1)
+
+    def test_brevity_bonus_point_one_when_fewer_than_13_words(self):
+        hook = {"urls": [], "text": " ".join(["word"] * 12), "tags": None}
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.1)
+
+    def test_brevity_bonus_point_zero_five_when_13_to_16_words(self):
+        hook = {"urls": [], "text": " ".join(["word"] * 13), "tags": None}
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.05)
+
+    def test_brevity_bonus_point_zero_five_at_16_words(self):
+        hook = {"urls": [], "text": " ".join(["word"] * 16), "tags": None}
+        assert helpers.score_hook(hook, {}) == pytest.approx(0.05)
+
+    def test_brevity_bonus_zero_at_17_words(self):
+        hook = {"urls": [], "text": " ".join(["word"] * 17), "tags": None}
+        assert helpers.score_hook(hook, {}) == 0
+
+    def test_brevity_bonus_zero_above_17_words(self):
+        hook = {"urls": [], "text": " ".join(["word"] * 25), "tags": None}
+        assert helpers.score_hook(hook, {}) == 0
+
+    def test_brevity_bonus_combines_with_preference_score(self):
+        hook = {
+            "urls": [],
+            "text": " ".join(["word"] * 12),  # <13 words → +0.1 brevity bonus
+            "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False},
+        }
+        prefs = {"domain": {"science": 1}, "tone": {}}
+        # 1 (pref) + 0.1 (brevity) = 1.1
         assert helpers.score_hook(hook, prefs) == pytest.approx(1.1)
 
 
