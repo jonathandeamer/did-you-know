@@ -39,6 +39,43 @@ Something went wrong with the fact-fetching; please try again later.
 ```
 
 
+## Managing preferences
+
+Facts are scored at serve time. Each `like` or `dislike` preference adds +1 (`like`) or −1 (`dislike`) to the score (domain tags are summed; tone is a single tag). On top of that, small automatic bonuses apply to all facts: recency, brevity, and multiple source URLs are rewarded, while consecutive facts from the same domain are lightly penalised.
+
+### Setup
+
+```bash
+python3 {baseDir}/scripts/prefs.py init
+```
+
+Creates `~/.openclaw/dyk-prefs.json` with every tag set to `neutral`. Fails if the file already exists.
+
+### Commands
+
+```bash
+# View all current preferences
+python3 {baseDir}/scripts/prefs.py list
+
+# Get a single preference
+python3 {baseDir}/scripts/prefs.py get domain science
+
+# Set a preference
+python3 {baseDir}/scripts/prefs.py set domain science like
+python3 {baseDir}/scripts/prefs.py set tone dark dislike
+```
+
+The `set` command's value argument accepts: `like`, `neutral`, `dislike`.
+
+`list`, `get`, and `set` all require the prefs file to exist — if they report "no prefs file found", run `init` first and then retry.
+
+### Tags
+
+**domain:** `animals` · `economics_business` · `film` · `history` · `journalism` · `language_linguistics` · `literature` · `medicine_health` · `military_history` · `music` · `mythology_folklore` · `nature` · `performing_arts` · `places` · `religion` · `science` · `sports` · `technology` · `television` · `visual_art`
+
+**tone:** `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
+
+
 ## Setting up automated refresh
 
 To keep the fact queue topped up automatically, set a cron job to run every 12 hours:
