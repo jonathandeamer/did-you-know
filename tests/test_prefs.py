@@ -112,6 +112,19 @@ def test_list_warns_on_out_of_range_value(tmp_path, monkeypatch, capsys):
     assert "domain.history" in captured.err
 
 
+def test_list_warns_on_non_dict_dimension(tmp_path, monkeypatch, capsys):
+    prefs_path = tmp_path / "dyk-prefs.json"
+    _write_prefs(prefs_path, {"domain": 5, "tone": {"straight": 0}})
+    monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)
+
+    result = prefs.main(["list"])
+
+    assert result == 0
+    captured = capsys.readouterr()
+    assert "domain" in captured.err
+    assert "tone" in captured.out
+
+
 def test_list_missing_file_suggests_init(tmp_path, monkeypatch, capsys):
     prefs_path = tmp_path / "dyk-prefs.json"
     monkeypatch.setattr(prefs, "PREFS_PATH", prefs_path)

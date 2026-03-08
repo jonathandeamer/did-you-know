@@ -63,6 +63,9 @@ def cmd_list(args: argparse.Namespace) -> int:
         return 1
     for dim, tags in sorted(data.items()):
         print(f"{dim}:")
+        if not isinstance(tags, dict):
+            print(f"Warning: expected object for {dim!r}, got {type(tags).__name__!r} — skipping", file=sys.stderr)
+            continue
         for tag, val in sorted(tags.items()):
             word = VALUE_MAP_INV.get(val, str(val))
             if val not in VALUE_MAP_INV:
