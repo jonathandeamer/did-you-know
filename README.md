@@ -6,7 +6,7 @@ An [OpenClaw](https://openclaw.ai) skill. Skills extend what your agent can do â
 
 [![GitHub Release](https://img.shields.io/github/v/release/jonathandeamer/did-you-know)](https://github.com/jonathandeamer/did-you-know/releases)
 [![License: MIT](https://img.shields.io/github/license/jonathandeamer/did-you-know)](LICENSE)
-[![Python 3](https://img.shields.io/badge/python-3-blue)](https://www.python.org)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue)](https://www.python.org)
 
 ---
 

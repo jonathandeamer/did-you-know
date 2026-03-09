@@ -45,8 +45,3 @@
 !references/tagging-guide.md
 !references/tags.csv
 !references/dyk-prefs.json
-
-# Docs
-!docs/
-!docs/plans/
-!docs/plans/*.md
