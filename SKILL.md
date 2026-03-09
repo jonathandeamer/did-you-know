@@ -11,96 +11,77 @@ Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know
 
 Use this skill when the user asks for an interesting fact, wants daily trivia delivered automatically, or wants to customise which kinds of facts they see.
 
-This skill can help with:
-- Sharing a "Did you know?" fact on demand
-- Scheduling daily fact delivery
-- Customising which facts surface using tag preferences
-- Keeping the fact queue topped up by refreshing it automatically
+Focus on what the skill can do rather than the underlying commands. Do not surface bash commands to the user by default — only show them if the user explicitly asks for technical details or wants to run commands manually. For the full command reference, see `{baseDir}/references/commands.md`.
 
-When guiding the user, focus on what the skill can do rather than the underlying commands. Do not surface bash commands by default. Only show commands if the user explicitly asks for technical details or wants to run them manually.
+## What users might want
 
-## Commands
-
-| Task | Command |
-|------|---------|
-| Share a fact | `python3 {baseDir}/scripts/dyk.py` |
-| Initialise preferences | `python3 {baseDir}/scripts/prefs.py init` |
-| List preferences | `python3 {baseDir}/scripts/prefs.py list` |
-| Get a preference | `python3 {baseDir}/scripts/prefs.py get domain science` |
-| Set a preference | `python3 {baseDir}/scripts/prefs.py set domain science like` |
-
-For fetching and refreshing facts (usually scheduled automatically), see **Refresh workflow** below.
+| If the user wants… | Do this |
+|---|---|
+| A fact | Serve one (see Serving a fact) |
+| To customise which facts they see | Walk through preferences (see Managing preferences) |
+| Facts delivered automatically | Help them set up a schedule (see Scheduling fact delivery) |
+| The fact queue refreshed | Follow the Refresh workflow |
 
 ## Serving a fact
-
-When invoked, the default behaviour is to share the next fact from the queue:
 
 ```bash
 python3 {baseDir}/scripts/dyk.py
 ```
 
-Prints one fact. Return it to the user verbatim:
+Return the output to the user verbatim.
 
+**Fact served:**
 ```
 Did you know that heavy-metal guitarist Kiki Wong played drums for Taylor Swift before joining the Smashing Pumpkins?
 
 https://en.wikipedia.org/wiki/Kiki_Wong
 ```
 
-If no new facts remain:
-
+**No facts remaining:**
 ```
 No more facts to share today; check back tomorrow!
 ```
 
-If something goes wrong:
-
+**Error:**
 ```
 Something went wrong with the fact-fetching; please try again later.
 ```
 
-
-### Explaining a fact choice
-
-If the user wants the fact choice explained, read `~/.openclaw/dyk-facts.json` and find the hook with the most recent `returned_at` timestamp. Use its `served_score` field — a breakdown of the exact score it received at the moment it was chosen. If the user wants to compare against the facts that were not chosen, each unchosen hook has a `candidate_score` field with the same structure — but note that `candidate_score` is overwritten on every run, so it reflects the most recent evaluation and may not match what was calculated when the fact was originally served (e.g. if preferences have changed since).
-
-| Field | What it means |
-|---|---|
-| `domain` | Points from the user's domain tag preferences (positive = liked tags matched, negative = disliked) |
-| `tone` | Points from the user's tone tag preference |
-| `diversity_penalty` | Deduction for sharing a domain tag with the previous fact |
-| `freshness` | Bonus for being from the most recently fetched batch |
-| `multi_link` | Bonus for having more than one source link |
-| `brevity` | Bonus for being a short fact |
-
-List all six components, then summarise the most significant contributors in plain language.
+After serving a fact, it's a natural moment to mention that facts can be delivered automatically on a schedule — once a day over breakfast, a few times throughout the day, and so on.
 
 ## Managing preferences
 
-Facts are scored using user preferences. Liked tags increase the score and disliked tags reduce it. Recency and variety bonuses are applied automatically.
+Facts are scored and ranked using user preferences. Liked tags increase the score; disliked tags reduce it. Recency and variety bonuses apply automatically.
 
-If the user wants to customise preferences, walk them through `init` (if necessary) → `list` → `set` one step at a time, giving them details of the tag options available. Remember, when guiding the user, focus on what the skill can do rather than the underlying commands. Do not surface bash commands by default. Only show commands if the user explicitly asks for technical details or wants to run them manually.
+### Have the conversation first
 
-### Commands
+Before running any commands, ask the user what they enjoy. Two dimensions are available:
+
+- **domain** — topic area (e.g. history, science, music)
+- **tone** — style or mood (e.g. quirky, inspiring, dark)
+
+Don't list every tag upfront — just ask what they like in natural terms and map their answers. For example: "I love dark historical stories" maps to `domain: history` (like), `tone: dark` (like).
+
+### Setting preferences
+
+Once you know what they want:
+
+1. Check if the prefs file exists. If not, initialise it first (`prefs.py init`).
+2. Set each preference (`prefs.py set`).
+3. Summarise in plain language what's been set and how it will affect the facts they see.
+
+If they want to see their current preferences at any point, run `prefs.py list` and present the results readably — not as raw output.
+
+At the end of the preferences conversation, it's a natural moment to ask if they'd like facts delivered automatically on a schedule.
+
+### Preference commands
 
 ```bash
-# Initialise preferences - creates ~/.openclaw/dyk-prefs.json with every tag set to neutral. Fails if the file already exists.
-python3 {baseDir}/scripts/prefs.py init
-
-# View all current preferences
-python3 {baseDir}/scripts/prefs.py list
-
-# Get a single preference
-python3 {baseDir}/scripts/prefs.py get domain science
-
-# Set a preference
-python3 {baseDir}/scripts/prefs.py set domain science like
-python3 {baseDir}/scripts/prefs.py set tone dark dislike
+python3 {baseDir}/scripts/prefs.py init                     # Create prefs file with neutral defaults. Fails if already exists.
+python3 {baseDir}/scripts/prefs.py list                     # Show all current preferences
+python3 {baseDir}/scripts/prefs.py get domain science       # Get a single preference
+python3 {baseDir}/scripts/prefs.py set domain science like  # Set a preference: like | neutral | dislike
 ```
-
-The `set` command's value argument accepts: `like`, `neutral`, `dislike`.
-
-`list`, `get`, and `set` all require the prefs file to exist — if they report "no prefs file found", run `init` first and then retry.
 
 ### Tags
 
@@ -108,15 +89,20 @@ The `set` command's value argument accepts: `like`, `neutral`, `dislike`.
 
 **tone:** `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
 
-## Scheduling fact delivery (once)
+## Scheduling fact delivery
 
-To receive a daily fact automatically, set a cron job to run `python3 {baseDir}/scripts/dyk.py`
+When the user wants to receive facts automatically, prompt a cadence conversation before setting anything up:
 
-## Setting up automated refresh (once)
+- How often would they like a fact? Once a day is a nice ritual — over breakfast, on the commute, at the end of the day. A few times spread throughout the day also works.
+- Bear in mind: the more frequently facts are served, the further into lower-preference territory the queue will go.
 
-To keep the fact queue topped up automatically, set a cron job to run every 12 hours with the message "Refresh the DYK cache and tag new hooks".
+Once they've chosen, set up a cron job running `python3 {baseDir}/scripts/dyk.py` at their chosen schedule.
 
-The cron agent will follow the refresh workflow below each time it runs.
+At the same time, set up automated refresh in the background — the user doesn't need to know the details. Just say something like: *"I'll also set things up in the background so your queue stays fresh."* Then follow Setting up automated refresh below.
+
+## Setting up automated refresh
+
+Set a cron job to run every 12 hours with the message "Refresh the DYK cache and tag new hooks". The cron agent will follow the Refresh workflow each time it runs.
 
 ## Refresh workflow
 
