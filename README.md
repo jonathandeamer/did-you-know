@@ -74,7 +74,7 @@ Tell the agent what you enjoy and it will set up preferences in plain language �
 
 Preferences influence the order facts are served: liked topics and tones rise to the top, disliked ones are pushed to the back. Two dimensions are available — **domain** (topic area, e.g. history, music, science) and **tone** (style or mood, e.g. quirky, dark, inspiring).
 
-When you set up preferences, the agent also sets up automatic refresh in the background. This is what keeps newly arrived facts tagged so that your preferences continue to apply over time — you don't need to think about it.
+If you set up preferences, the agent can also set up automatic refresh in the background. This is what keeps newly arrived facts tagged so that your preferences continue to apply over time — you don't need to think about it.
 
 ### Schedule fact delivery
 
