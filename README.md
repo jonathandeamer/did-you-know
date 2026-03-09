@@ -67,14 +67,14 @@ One fact per ask, with a link to the full Wikipedia article if you want to go de
 
 ### Tune which facts you see
 
-Tell the agent what you enjoy and it will set up preferences in plain language — no configuration files to edit yourself:
+Tell the agent what you enjoy and it will set preferences accordingly:
 
 > *"I want more history and dark stories, less science"*
 > *"Quirky and surprising facts please, nothing too serious"*
 
 Preferences influence the order facts are served: liked topics and tones rise to the top, disliked ones are pushed to the back. Two dimensions are available — **domain** (topic area, e.g. history, music, science) and **tone** (style or mood, e.g. quirky, dark, inspiring).
 
-The agent sets up automatic refresh in the background at the same time — this is what keeps newly arrived facts tagged so that your preferences continue to apply over time. You don't need to think about it.
+Setting preferences also enables automatic refresh, which tags new facts as they arrive so scoring stays current.
 
 ### Schedule fact delivery
 
@@ -97,10 +97,10 @@ Scheduled delivery works independently of preferences. If you have preferences s
 | Facts delivered automatically | A delivery schedule |
 | Facts tuned to your interests | Preferences + automatic refresh |
 
-Preferences and refresh go together: preferences control which facts rank highest; refresh fetches and tags new facts from Wikipedia so your preferences keep applying as the queue turns over. Without refresh, preferences only affect the facts already in the cache. Your agent sets both up at the same time.
+Preferences and refresh go together: preferences control which facts rank highest; refresh fetches and tags new facts from Wikipedia so your preferences keep applying as the queue turns over. Without refresh, preferences only affect the facts already in the cache. Both are configured together when you set up preferences.
 
 Scheduled delivery is independent — it sends you a fact at a chosen time, with or without preferences.
 
 ---
 
-For the full command reference, see [`references/commands.md`](references/commands.md).
+Most interaction is through natural language. The full command reference is in [`references/commands.md`](references/commands.md) if you want to run things directly.
