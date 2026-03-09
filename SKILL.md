@@ -11,7 +11,7 @@ Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know
 
 Use this skill when the user asks for an interesting fact, wants daily trivia delivered automatically, or wants to customise which kinds of facts they see.
 
-> **Agent: Do not show bash commands or technical details to the user unless they explicitly ask. Run all commands silently. The user experience is conversational — facts, questions, and natural follow-ups.**
+> **Agent: Do not show bash commands or technical details to the user unless they explicitly ask. Run all commands silently. The user experience is conversational — facts, questions, and natural follow-ups. Keep your tone direct and natural; avoid empty compliments like "Great taste!" or "Excellent choice!" when responding to preferences.**
 
 ## What users might want
 
@@ -67,7 +67,7 @@ Facts are scored and ranked using user preferences. Liked tags increase the scor
 
 ### Have the conversation first
 
-Before running any commands, ask the user what they enjoy. Two dimensions are available:
+Before running any commands, understand what the user enjoys. If they've already told you (e.g. "I love dark historical stories but not sports"), map their words directly to tags — don't ask them to repeat themselves. Only ask follow-up questions if their intent is unclear. Two dimensions are available:
 
 - **domain** — topic area (e.g. history, science, music)
 - **tone** — style or mood (e.g. quirky, inspiring, dark)
