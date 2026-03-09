@@ -74,7 +74,7 @@ Tell the agent what you enjoy and it will set up preferences in plain language �
 
 Preferences influence the order facts are served: liked topics and tones rise to the top, disliked ones are pushed to the back. Two dimensions are available — **domain** (topic area, e.g. history, music, science) and **tone** (style or mood, e.g. quirky, dark, inspiring).
 
-If you set up preferences, the agent can also set up automatic refresh in the background. This is what keeps newly arrived facts tagged so that your preferences continue to apply over time — you don't need to think about it.
+The agent sets up automatic refresh in the background at the same time — this is what keeps newly arrived facts tagged so that your preferences continue to apply over time. You don't need to think about it.
 
 ### Schedule fact delivery
 
@@ -89,14 +89,17 @@ Scheduled delivery works independently of preferences. If you have preferences s
 
 ## Setup tiers at a glance
 
+*From least to most setup:*
+
 | What you want | What's needed |
 |---|---|
 | Facts on demand | Nothing — just ask |
-| Facts tuned to your interests | Preferences (set by your agent in conversation) |
 | Facts delivered automatically | A delivery schedule |
-| Preferences that apply to newly arrived facts | Automatic refresh (set up alongside preferences) |
+| Facts tuned to your interests | Preferences + automatic refresh |
 
-Refresh is distinct from delivery: delivery sends you a fact at a set time; refresh fetches and tags new facts from Wikipedia so your preferences stay meaningful as the queue turns over. If you're not using preferences, you don't need refresh — the skill handles basic cache management on its own.
+Preferences and refresh go together: preferences control which facts rank highest; refresh fetches and tags new facts from Wikipedia so your preferences keep applying as the queue turns over. Without refresh, preferences only affect the facts already in the cache. Your agent sets both up at the same time.
+
+Scheduled delivery is independent — it sends you a fact at a chosen time, with or without preferences.
 
 ---
 
