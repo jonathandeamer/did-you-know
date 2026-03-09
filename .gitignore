@@ -41,6 +41,7 @@
 
 # References
 !references/
+!references/commands.md
 !references/tagging-guide.md
 !references/tags.csv
 !references/dyk-prefs.json
