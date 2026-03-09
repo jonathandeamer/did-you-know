@@ -11,7 +11,7 @@ Wikipedia's [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know
 
 Use this skill when the user asks for an interesting fact, wants daily trivia delivered automatically, or wants to customise which kinds of facts they see.
 
-Focus on what the skill can do rather than the underlying commands. Do not surface bash commands to the user by default — only show them if the user explicitly asks for technical details or wants to run commands manually. For the full command reference, see `{baseDir}/references/commands.md`.
+> **Agent: Do not show bash commands or technical details to the user unless they explicitly ask. Run all commands silently. The user experience is conversational — facts, questions, and natural follow-ups.**
 
 ## What users might want
 
@@ -22,7 +22,19 @@ Focus on what the skill can do rather than the underlying commands. Do not surfa
 | Facts delivered automatically | Help them set up a schedule (see Scheduling fact delivery) |
 | The fact queue refreshed | Follow the Refresh workflow |
 
+## Is any setup required?
+
+**Facts work immediately — no setup needed.** Just serve one.
+
+**Preferences are optional but recommended.** If the user wants to tune which topics come up (more history, less science, etc.), you can set those up in a minute or two. Preferences need the refresh workflow running so that new facts get tagged before they're scored.
+
+**Scheduled refresh is only needed if preferences are active.** Without preferences, the skill fetches and caches facts automatically as needed. With preferences, set up both a delivery schedule (to serve facts) and a refresh schedule (to tag new facts so preference scoring works).
+
+If a user asks whether any setup is required, a good response is: *"You can get facts right now — no setup needed. If you'd like to tune which topics come up, or get a fact delivered automatically each day, we can set either of those up in a few minutes. Want to?"*
+
 ## Serving a fact
+
+> **Agent: run this silently — do not show the command.**
 
 ```bash
 python3 {baseDir}/scripts/dyk.py
@@ -47,7 +59,7 @@ No more facts to share today; check back tomorrow!
 Something went wrong with the fact-fetching; please try again later.
 ```
 
-After serving a fact, it's a natural moment to mention that facts can be delivered automatically on a schedule — once a day over breakfast, a few times throughout the day, and so on.
+After serving a fact, follow up naturally — something like: *"Would you like to tune which topics you see (more music, less science, etc.), or get a fact delivered automatically each day?"* Both are quick to set up and make the experience better over time.
 
 ## Managing preferences
 
@@ -62,6 +74,8 @@ Before running any commands, ask the user what they enjoy. Two dimensions are av
 
 Don't list every tag upfront — just ask what they like in natural terms and map their answers. For example: "I love dark historical stories" maps to `domain: history` (like), `tone: dark` (like).
 
+When opening the preferences conversation, mention that you'll also set up automatic refresh alongside — this is what actually applies preferences to new facts as they arrive. Keep it light: something like *"I'll also set up automatic refresh in the background so new facts get tagged and scored against your preferences."* The user doesn't need to understand the mechanics, but they should know the full setup is happening.
+
 ### Setting preferences
 
 Once you know what they want:
@@ -72,9 +86,7 @@ Once you know what they want:
 
 If they want to see their current preferences at any point, run `prefs.py list` and present the results readably — not as raw output.
 
-At the end of the preferences conversation, it's a natural moment to ask if they'd like facts delivered automatically on a schedule.
-
-### Preference commands
+> **Agent: run preference commands silently — do not show them.**
 
 ```bash
 python3 {baseDir}/scripts/prefs.py init                     # Create prefs file with neutral defaults. Fails if already exists.
@@ -89,6 +101,12 @@ python3 {baseDir}/scripts/prefs.py set domain science like  # Set a preference: 
 
 **tone:** `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
 
+### After setting preferences
+
+Once preferences are saved, set up the refresh schedule automatically — this is what makes preferences apply to new facts as they arrive. Without it, preferences only affect the existing cache. Say something like: *"I've also set up automatic refresh in the background so new facts keep getting tagged and scored against your preferences."* Then follow Setting up automated refresh below.
+
+Also offer scheduled delivery if they haven't already set it up.
+
 ## Scheduling fact delivery
 
 When the user wants to receive facts automatically, prompt a cadence conversation before setting anything up:
@@ -98,7 +116,9 @@ When the user wants to receive facts automatically, prompt a cadence conversatio
 
 Once they've chosen, set up a cron job running `python3 {baseDir}/scripts/dyk.py` at their chosen schedule.
 
-At the same time, set up automated refresh in the background — the user doesn't need to know the details. Just say something like: *"I'll also set things up in the background so your queue stays fresh."* Then follow Setting up automated refresh below.
+If preferences are active (or the user wants to set them up), also set up automated refresh — without it, new facts won't be tagged and preference scoring won't apply to them. Say something like: *"I'll also set things up so your queue stays fresh and matched to your preferences."* Then follow Setting up automated refresh below.
+
+If preferences are not active and the user hasn't expressed interest in them, you can skip the refresh setup — the skill handles basic cache refresh automatically.
 
 ## Setting up automated refresh
 
@@ -142,3 +162,5 @@ When asked to refresh the DYK facts cache and tag new hooks:
    If it exits non-zero, report the error.
 
 5. Do not message the user unless there is an error.
+
+For the full command reference, see `{baseDir}/references/commands.md`.
