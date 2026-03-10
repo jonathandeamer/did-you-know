@@ -59,7 +59,7 @@ No more facts to share today; check back tomorrow!
 Something went wrong with the fact-fetching; please try again later.
 ```
 
-After serving a fact, follow up naturally — something like: *"Would you like to tune which topics you see (more music, less science, etc.), or get a fact delivered automatically each day?"* Both are quick to set up and make the experience better over time.
+After serving a fact, offer a natural follow-up **only if the user isn't already set up**. Use `~/.openclaw/dyk-prefs.json` as the signal: if it doesn't exist, the user is new and may not know about preferences or scheduled delivery — offer both: *"Would you like to tune which topics you see (more music, less science, etc.), or get a fact delivered automatically each day?"* If the prefs file exists, or if you've already set up preferences or delivery earlier in this conversation, say nothing — they know.
 
 ## Managing preferences
 
@@ -103,7 +103,7 @@ python3 {baseDir}/scripts/prefs.py set domain science like  # Set a preference: 
 
 ### After setting preferences
 
-Once preferences are saved, set up the refresh schedule automatically — this is what makes preferences apply to new facts as they arrive. Without it, preferences only affect the existing cache. Say something like: *"I've also set up automatic refresh in the background so new facts keep getting tagged and scored against your preferences."* Then follow Setting up automated refresh below.
+Once preferences are saved, run the Refresh workflow immediately — existing cached hooks are all untagged, so preferences can't score anything until they've been tagged. Don't wait for the scheduled cron; do it now, inline. Then set up the refresh schedule so future facts get tagged automatically as they arrive. Say something like: *"I'll tag your existing facts now so preferences apply straight away, and set up automatic refresh in the background for new ones."*
 
 Also offer scheduled delivery if they haven't already set it up.
 
