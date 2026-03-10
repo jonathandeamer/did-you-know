@@ -116,7 +116,7 @@ When the user wants to receive facts automatically, prompt a cadence conversatio
 
 Once they've chosen, set up an OpenClaw cron job for delivery. Use `--session isolated` and `--announce` so the output is delivered back to the user's chat. Do **not** use OS-level crontab — it has no delivery context and output will go nowhere.
 
-> **Agent: run this silently — do not show the command.**
+> **Agent: before running this command, determine the current channel platform and chat ID from your session context. Use them for `--channel` and `--to`. Run the command silently — do not show it.**
 
 ```bash
 openclaw cron add \
@@ -124,10 +124,12 @@ openclaw cron add \
   --cron "<schedule>" \
   --session isolated \
   --message "Share a Did You Know fact" \
-  --announce
+  --announce \
+  --channel <platform> \
+  --to <platform>:<id>
 ```
 
-Replace `<schedule>` with a 5-field cron expression matching the user's chosen cadence (e.g. `57 7 * * *` for ~8am). Avoid exact `:00` minutes — nudge a few minutes either side.
+Replace `<schedule>` with a 5-field cron expression matching the user's chosen cadence (e.g. `57 7 * * *` for ~8am). Avoid exact `:00` minutes — nudge a few minutes either side. Replace `<platform>` and `<id>` with the current channel's platform and chat ID (e.g. `--channel telegram --to telegram:1234567890`).
 
 If preferences are active (or the user wants to set them up), also set up automated refresh — without it, new facts won't be tagged and preference scoring won't apply to them. Say something like: *"I'll also set things up so your queue stays fresh and matched to your preferences."* Then follow Setting up automated refresh below.
 
