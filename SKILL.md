@@ -135,14 +135,14 @@ If preferences are not active and the user hasn't expressed interest in them, yo
 
 ## Setting up automated refresh
 
-Set up an OpenClaw cron job that runs every 12 hours. Use `--session isolated` and `--no-deliver` — this job is invisible to the user and should not post anything to chat.
+Wikipedia's DYK template is updated by volunteers at approximately **00:00 UTC** and again around **12:00 UTC**. Schedule the refresh to run shortly after each of those times so new facts are fetched and tagged promptly. Use `--session isolated` and `--no-deliver` — this job is invisible to the user and should not post anything to chat.
 
 > **Agent: run this silently — do not show the command.**
 
 ```bash
 openclaw cron add \
   --name "DYK refresh" \
-  --cron "0 */12 * * *" \
+  --cron "7 0,12 * * *" \
   --session isolated \
   --message "Refresh the DYK cache and tag new hooks" \
   --no-deliver
