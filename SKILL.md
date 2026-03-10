@@ -59,7 +59,7 @@ No more facts to share today; check back tomorrow!
 Something went wrong with the fact-fetching; please try again later.
 ```
 
-After serving a fact, offer a natural follow-up **only if the user isn't already set up**. Use `~/.openclaw/dyk-prefs.json` as the signal: if it doesn't exist, the user is new and may not know about preferences or scheduled delivery — offer both: *"Would you like to tune which topics you see (more music, less science, etc.), or get a fact delivered automatically each day?"* If the prefs file exists, or if you've already set up preferences or delivery earlier in this conversation, say nothing — they know.
+After serving a fact, check whether `~/.openclaw/dyk-prefs.json` exists. If it does **not** exist, the user is new — follow up: *"Would you like to tune which topics you see (more music, less science, etc.), or get a fact delivered automatically each day?"* If the file exists, or if you already set up preferences or delivery earlier in this conversation, say nothing.
 
 ## Managing preferences
 
