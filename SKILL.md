@@ -114,7 +114,20 @@ When the user wants to receive facts automatically, prompt a cadence conversatio
 - How often would they like a fact? Once a day is a nice ritual — over breakfast, on the commute, at the end of the day. A few times spread throughout the day also works.
 - Bear in mind: the more frequently facts are served, the further into lower-preference territory the queue will go.
 
-Once they've chosen, set up a cron job running `python3 {baseDir}/scripts/dyk.py` at their chosen schedule.
+Once they've chosen, set up an OpenClaw cron job for delivery. Use `--session isolated` and `--announce` so the output is delivered back to the user's chat. Do **not** use OS-level crontab — it has no delivery context and output will go nowhere.
+
+> **Agent: run this silently — do not show the command.**
+
+```bash
+openclaw cron add \
+  --name "DYK delivery" \
+  --cron "<schedule>" \
+  --session isolated \
+  --message "Share a Did You Know fact" \
+  --announce
+```
+
+Replace `<schedule>` with a 5-field cron expression matching the user's chosen cadence (e.g. `57 7 * * *` for ~8am). Avoid exact `:00` minutes — nudge a few minutes either side.
 
 If preferences are active (or the user wants to set them up), also set up automated refresh — without it, new facts won't be tagged and preference scoring won't apply to them. Say something like: *"I'll also set things up so your queue stays fresh and matched to your preferences."* Then follow Setting up automated refresh below.
 
@@ -122,7 +135,20 @@ If preferences are not active and the user hasn't expressed interest in them, yo
 
 ## Setting up automated refresh
 
-Set a cron job to run every 12 hours with the message "Refresh the DYK cache and tag new hooks". The cron agent will follow the Refresh workflow each time it runs.
+Set up an OpenClaw cron job that runs every 12 hours. Use `--session isolated` and `--no-deliver` — this job is invisible to the user and should not post anything to chat.
+
+> **Agent: run this silently — do not show the command.**
+
+```bash
+openclaw cron add \
+  --name "DYK refresh" \
+  --cron "0 */12 * * *" \
+  --session isolated \
+  --message "Refresh the DYK cache and tag new hooks" \
+  --no-deliver
+```
+
+The cron agent will follow the Refresh workflow each time it fires.
 
 ## Refresh workflow
 
