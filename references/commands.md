@@ -94,7 +94,7 @@ Both `served_score` and `candidate_score` are objects with the following fields:
 |---|---|
 | `domain` | Points from the user's domain tag preferences (positive = liked tags matched, negative = disliked) |
 | `tone` | Points from the user's tone tag preference |
-| `diversity_penalty` | Deduction for sharing a domain tag with the previous fact |
+| `repetition_penalty` | Deduction for sharing a domain tag with the previous fact |
 | `freshness` | Bonus for being from the most recently fetched batch |
 | `multi_link` | Bonus for having more than one source link |
 | `brevity` | Bonus for being a short fact |

@@ -116,7 +116,7 @@ def next_hook(store: dict, prefs: dict | None = None) -> str:
     if prefs is None:
         prefs = {}
     collections = store.get("collections", [])
-    # Domains of the last served hook, used to apply the diversity penalty in score_hook.
+    # Domains of the last served hook, used to apply the repetition penalty in score_hook.
     prev_domains = last_served_domains(store)
     candidates = []
     for coll_idx, coll in enumerate(reversed(collections)):  # coll_idx 0 = newest

@@ -417,7 +417,7 @@ class TestNextHook:
         hooks = store["collections"][0]["hooks"]
         for hook in hooks:
             assert "candidate_score" in hook
-            assert set(hook["candidate_score"].keys()) == {"domain", "tone", "diversity_penalty", "freshness", "multi_link", "brevity", "total"}
+            assert set(hook["candidate_score"].keys()) == {"domain", "tone", "repetition_penalty", "freshness", "multi_link", "brevity", "total"}
 
     def test_served_score_written_when_hook_served(self, monkeypatch):
         """next_hook writes served_score breakdown to the served hook."""
@@ -435,13 +435,13 @@ class TestNextHook:
         hook = store["collections"][0]["hooks"][0]
         assert "served_score" in hook
         score = hook["served_score"]
-        assert set(score.keys()) == {"domain", "tone", "diversity_penalty", "freshness", "multi_link", "brevity", "total"}
+        assert set(score.keys()) == {"domain", "tone", "repetition_penalty", "freshness", "multi_link", "brevity", "total"}
         assert score["domain"] == pytest.approx(1)
         assert score["tone"] == pytest.approx(1)
         assert score["total"] == pytest.approx(2.1)  # 1 + 1 + 0.1 freshness (newest collection)
 
     def test_domain_penalty_applied_to_previously_served_domain(self, monkeypatch):
-        """Hooks sharing the last served domain incur a flat −0.2 diversity penalty per tag."""
+        """Hooks sharing the last served domain incur a flat −0.2 repetition penalty per tag."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
@@ -454,7 +454,7 @@ class TestNextHook:
                         {"text": "old science", "urls": [], "returned": True,
                          "returned_at": "2026-02-24T11:00:00Z",
                          "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
-                        # Science hook: pref 1 − 0.2 (diversity penalty) = 0.8
+                        # Science hook: pref 1 − 0.2 (repetition penalty) = 0.8
                         {"text": "new science", "urls": [], "returned": False,
                          "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}},
                         # History hook: pref 1 + 0 (no penalty) = 1.0

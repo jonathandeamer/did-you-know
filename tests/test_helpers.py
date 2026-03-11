@@ -430,7 +430,7 @@ class TestScoreHook:
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         result = helpers.score_hook(hook, {})
         assert isinstance(result, dict)
-        assert set(result.keys()) == {"domain", "tone", "diversity_penalty", "freshness", "multi_link", "brevity", "total"}
+        assert set(result.keys()) == {"domain", "tone", "repetition_penalty", "freshness", "multi_link", "brevity", "total"}
 
     def test_domain_preference_contributes_score(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
@@ -498,7 +498,7 @@ class TestScoreHook:
     def test_prev_domain_reduces_matching_tag_score(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": 1}, "tone": {}}
-        # 1 (pref) − 0.2 (diversity penalty) = 0.8
+        # 1 (pref) − 0.2 (repetition penalty) = 0.8
         assert helpers.score_hook(hook, prefs, prev_domains={"science"})["total"] == pytest.approx(0.8)
 
     def test_prev_domain_does_not_affect_non_matching_tag(self):
@@ -520,7 +520,7 @@ class TestScoreHook:
     def test_prev_domain_increases_penalty_for_disliked_domain(self):
         hook = {"text": self.LONG, "urls": [], "tags": {"domain": ["science"], "tone": "straight", "low_confidence": False}}
         prefs = {"domain": {"science": -1}, "tone": {}}
-        # −1 (pref) − 0.2 (diversity penalty) = −1.2
+        # −1 (pref) − 0.2 (repetition penalty) = −1.2
         assert helpers.score_hook(hook, prefs, prev_domains={"science"})["total"] == pytest.approx(-1.2)
 
     def test_prev_domains_none_applies_no_penalty(self):
