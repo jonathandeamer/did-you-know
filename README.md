@@ -1,6 +1,6 @@
 # "Did You Know?" OpenClaw skill
 
-Interesting facts from Wikipedia's volunteer-curated [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) feature — one at a time, no repeats.
+Interesting facts based on your preferences from Wikipedia's volunteer-curated [Did You Know?](https://en.wikipedia.org/wiki/Wikipedia:Did_you_know) feature — one at a time, no repeats.
 
 An [OpenClaw](https://openclaw.ai) skill. Skills extend what your agent can do — install this one to give it a daily supply of Wikipedia facts. Find more skills at [ClawHub](https://clawhub.ai).
 
