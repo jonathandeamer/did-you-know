@@ -41,7 +41,7 @@ clawhub install did-you-know
 
 ```bash
 mkdir -p ~/.openclaw/workspace/skills/did-you-know && \
-curl -L https://github.com/jonathandeamer/did-you-know/archive/refs/tags/v0.1.1.tar.gz | \
+curl -L https://github.com/jonathandeamer/did-you-know/archive/refs/tags/v0.2.0.tar.gz | \
 tar -xz --strip-components=1 -C ~/.openclaw/workspace/skills/did-you-know
 ```
 
@@ -72,7 +72,13 @@ Tell the agent what you enjoy and it will set preferences accordingly:
 > *"I want more history and dark stories, less science"*
 > *"Quirky and surprising facts please, nothing too serious"*
 
-Preferences influence the order facts are served: liked topics and tones rise to the top, disliked ones are pushed to the back. Two dimensions are available — **domain** (topic area, e.g. history, music, science) and **tone** (style or mood, e.g. quirky, dark, inspiring).
+Preferences influence the order facts are served: liked topics and tones rise to the top, disliked ones are pushed to the back. Two dimensions are available:
+
+**domain** (20 tags): `animals` · `economics_business` · `film` · `history` · `journalism` · `language_linguistics` · `literature` · `medicine_health` · `military_history` · `music` · `mythology_folklore` · `nature` · `performing_arts` · `places` · `religion` · `science` · `sports` · `technology` · `television` · `visual_art`
+
+**tone** (9 tags): `dark` · `dramatic` · `inspiring` · `poignant` · `provocative` · `quirky` · `straight` · `surprising` · `whimsical`
+
+Beyond your explicit preferences, scoring also factors in recency, variety, and brevity automatically — newer facts, different topics from what you just saw, and shorter hooks all get a small boost.
 
 Setting preferences also enables automatic refresh, which tags new facts as they arrive so scoring stays current.
 
