@@ -160,6 +160,12 @@ class TestDisplayUrl:
             == "https://en.wikipedia.org/wiki/100%25_(album)"
         )
 
+    def test_decodes_safe_chars_within_run_containing_reserved_char(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/Caf%C3%A9%3F")
+            == "https://en.wikipedia.org/wiki/Café%3F"
+        )
+
     def test_leaves_url_without_escapes_unchanged(self):
         assert (
             helpers.display_url("https://en.wikipedia.org/wiki/Albert_Einstein")
@@ -327,7 +333,6 @@ Not a hook
         legacy_url = "https://en.wikipedia.org/wiki/C++_(programming_language)"
         hooks = helpers.collect_hooks(exclude_urls={legacy_url})
         assert hooks == []
-
 
     def test_dedupes_title_containing_question_mark_across_refreshes(self, monkeypatch):
         wikitext = (

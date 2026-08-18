@@ -68,15 +68,15 @@ def display_url(url: str) -> str:
 
     Wikipedia titles may legitimately contain '?', '#' or '%' (e.g. 'Um,
     Jennifer?'). Fully unquoting those turns valid path characters into URL
-    delimiters, producing links that 404. Escapes decoding to a reserved
-    character are therefore left as-is; everything else is decoded.
+    delimiters, producing links that 404. Escapes are decoded per run (so
+    multi-byte UTF-8 survives), then any reserved character is re-encoded.
     """
 
     def _decode(match: re.Match[str]) -> str:
         decoded = urllib.parse.unquote(match.group(0))
-        if any(ch in DISPLAY_RESERVED for ch in decoded):
-            return match.group(0)
-        return decoded
+        return "".join(
+            urllib.parse.quote(ch) if ch in DISPLAY_RESERVED else ch for ch in decoded
+        )
 
     return RE_PCT_RUN.sub(_decode, url)
 
