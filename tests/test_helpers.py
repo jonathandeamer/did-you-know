@@ -369,6 +369,7 @@ class TestRefreshCollections:
         def boom(exclude_urls=None):
             raise RuntimeError("network down")
         monkeypatch.setattr(helpers, "collect_hooks", boom)
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 8, 18, 12, 0, 0, tzinfo=timezone.utc))
         store = {"collections": [{"date": "2026-08-01", "fetched_at": "2026-08-01T00:00:00Z", "hooks": []}]}
         helpers.refresh_collections(store, failure_label="fetch")
         assert "DYK fetch failed: network down" in capsys.readouterr().err
@@ -377,6 +378,7 @@ class TestRefreshCollections:
         def boom(exclude_urls=None):
             raise RuntimeError("network down")
         monkeypatch.setattr(helpers, "collect_hooks", boom)
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 8, 18, 12, 0, 0, tzinfo=timezone.utc))
         store = {"collections": [{"date": "2026-08-01", "fetched_at": "2026-08-01T00:00:00Z", "hooks": []}]}
         helpers.refresh_collections(store)
         assert "DYK refresh failed: network down" in capsys.readouterr().err

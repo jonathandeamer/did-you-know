@@ -105,7 +105,6 @@ class TestBackwardsCompatibility:
         }
         data_path.write_text(json.dumps(store), encoding="utf-8")
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 1, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 1, 0, tzinfo=timezone.utc))
 
         result = dyk.main()
