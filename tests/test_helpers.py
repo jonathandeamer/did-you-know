@@ -347,6 +347,41 @@ Not a hook
         assert helpers.collect_hooks(exclude_urls=set(first[0]["urls"])) == []
 
 
+class TestRefreshCollections:
+    """The shared refresh routine behind ensure_fresh() and fetch_and_stage()."""
+
+    def _hooks(self):
+        return [{"text": "a fact", "urls": ["https://en.wikipedia.org/wiki/A"], "returned": False}]
+
+    def test_marks_new_hooks_untagged_when_requested(self, monkeypatch):
+        monkeypatch.setattr(helpers, "collect_hooks", lambda exclude_urls=None: self._hooks())
+        store = {"collections": []}
+        helpers.refresh_collections(store, mark_untagged=True)
+        assert store["collections"][0]["hooks"][0]["tags"] is None
+
+    def test_leaves_tags_absent_by_default(self, monkeypatch):
+        monkeypatch.setattr(helpers, "collect_hooks", lambda exclude_urls=None: self._hooks())
+        store = {"collections": []}
+        helpers.refresh_collections(store)
+        assert "tags" not in store["collections"][0]["hooks"][0]
+
+    def test_failure_label_appears_in_stderr(self, monkeypatch, capsys):
+        def boom(exclude_urls=None):
+            raise RuntimeError("network down")
+        monkeypatch.setattr(helpers, "collect_hooks", boom)
+        store = {"collections": [{"date": "2026-08-01", "fetched_at": "2026-08-01T00:00:00Z", "hooks": []}]}
+        helpers.refresh_collections(store, failure_label="fetch")
+        assert "DYK fetch failed: network down" in capsys.readouterr().err
+
+    def test_failure_label_defaults_to_refresh(self, monkeypatch, capsys):
+        def boom(exclude_urls=None):
+            raise RuntimeError("network down")
+        monkeypatch.setattr(helpers, "collect_hooks", boom)
+        store = {"collections": [{"date": "2026-08-01", "fetched_at": "2026-08-01T00:00:00Z", "hooks": []}]}
+        helpers.refresh_collections(store)
+        assert "DYK refresh failed: network down" in capsys.readouterr().err
+
+
 class TestStoredUrls:
     def test_collects_urls_from_store(self):
         store = {
