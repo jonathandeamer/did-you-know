@@ -262,6 +262,26 @@ class TestFetchWikitext:
             helpers.fetch_wikitext(retries=3, backoff=0)
         assert attempts["count"] == 3
 
+    def test_raises_when_response_has_pages_but_no_revisions(self, monkeypatch):
+        """A page with no revisions is a valid API response but unusable."""
+        payload = {"query": {"pages": {"123": {"title": "Template:Did you know"}}}}
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps(payload).encode("utf-8")
+
+        monkeypatch.setattr(helpers.urllib.request, "urlopen", lambda *_a, **_kw: FakeResponse())
+        monkeypatch.setattr(helpers.time, "sleep", lambda _secs: None)
+        with pytest.raises(RuntimeError, match="Failed to fetch Did You Know hooks") as excinfo:
+            helpers.fetch_wikitext(retries=1, backoff=0)
+        assert "No wikitext found in API response" in str(excinfo.value.__cause__)
+
 
 class TestCollectHooks:
     def test_parses_hooks_from_wikitext(self, monkeypatch):
@@ -345,6 +365,28 @@ Not a hook
         assert len(first) == 1
         # Feeding the stored URLs back in must suppress the same hook next time.
         assert helpers.collect_hooks(exclude_urls=set(first[0]["urls"])) == []
+
+    def test_skips_hook_line_with_no_extractable_title(self, monkeypatch):
+        """A hook line carrying no wikilink yields no URL, so it is dropped."""
+        wikitext = (
+            "<!--Hooks-->\n"
+            "* ... that this line has no wikilink at all?\n"
+            "<!--HooksEnd-->"
+        )
+        monkeypatch.setattr(helpers, "fetch_wikitext", lambda: wikitext)
+        assert helpers.collect_hooks() == []
+
+    def test_skips_hook_line_that_normalizes_to_empty(self, monkeypatch):
+        """Title is extractable from the raw wikitext, but nothing survives
+        normalization, so there is no text to display."""
+        wikitext = (
+            "<!--Hooks-->\n"
+            "* ... that <!--[[Some Article]]-->\n"
+            "<!--HooksEnd-->"
+        )
+        monkeypatch.setattr(helpers, "fetch_wikitext", lambda: wikitext)
+        assert helpers.extract_hook_titles("<!--[[Some Article]]-->") == ["Some Article"]
+        assert helpers.collect_hooks() == []
 
 
 class TestRefreshCollections:
@@ -952,3 +994,100 @@ class TestRefreshDue:
     def test_due_when_no_collections(self):
         now = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
         assert helpers.refresh_due({"collections": []}, now) is True
+
+    def test_missing_fetched_at_forces_refresh(self):
+        """When in doubt, refresh — a collection with no timestamp is unusable."""
+        store = {"collections": [{"date": "2026-02-24", "hooks": []}]}
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        assert helpers.refresh_due(store, now) is True
+
+    def test_unparseable_fetched_at_forces_refresh(self):
+        store = {"collections": [{"fetched_at": "not a timestamp", "hooks": []}]}
+        now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+        assert helpers.refresh_due(store, now) is True
+
+
+class TestScoreHookBreakdownComponents:
+    """Pin every component of the breakdown dict, not just the total.
+
+    CLAUDE.md documents the breakdown as the mechanism by which an agent
+    explains why a hook was served, and both candidate_score and served_score
+    are persisted to the cache for that purpose. Asserting only on `total`
+    lets a refactor move weight between components — folding
+    repetition_penalty into domain, say, or swapping the freshness and
+    brevity constants — while every total stays correct, the suite stays
+    green, and every stored explanation silently becomes wrong.
+    """
+
+    def test_every_component_of_a_fully_tagged_hook(self):
+        hook = {
+            "text": " ".join(["word"] * 10),
+            "urls": ["u1", "u2", "u3"],
+            "tags": {"domain": ["science", "history"], "tone": "surprising",
+                     "low_confidence": False},
+        }
+        prefs = {"domain": {"science": 1, "history": 1}, "tone": {"surprising": 1}}
+        assert helpers.score_hook(
+            hook, prefs, freshness_bonus=0.1, prev_domains={"science", "history"}
+        ) == pytest.approx({
+            "domain": 2,
+            "tone": 1,
+            "repetition_penalty": -0.4,
+            "freshness": 0.1,
+            "multi_link": 0.1,
+            "brevity": 0.1,
+            "total": 2.9,
+        })
+
+    def test_untagged_hook_zeroes_preferences_but_keeps_bonuses(self):
+        hook = {"text": " ".join(["word"] * 10), "urls": ["u1", "u2"]}
+        prefs = {"domain": {"science": 1}, "tone": {"surprising": 1}}
+        assert helpers.score_hook(hook, prefs, freshness_bonus=0.1) == pytest.approx({
+            "domain": 0,
+            "tone": 0,
+            "repetition_penalty": 0,
+            "freshness": 0.1,
+            "multi_link": 0.05,
+            "brevity": 0.1,
+            "total": 0.25,
+        })
+
+    def test_low_confidence_hook_zeroes_preferences_but_keeps_bonuses(self):
+        hook = {
+            "text": " ".join(["word"] * 10),
+            "urls": ["u1", "u2"],
+            "tags": {"domain": ["science"], "tone": "surprising", "low_confidence": True},
+        }
+        prefs = {"domain": {"science": 1}, "tone": {"surprising": 1}}
+        assert helpers.score_hook(hook, prefs, freshness_bonus=0.1) == pytest.approx({
+            "domain": 0,
+            "tone": 0,
+            "repetition_penalty": 0,
+            "freshness": 0.1,
+            "multi_link": 0.05,
+            "brevity": 0.1,
+            "total": 0.25,
+        })
+
+    @pytest.mark.parametrize("words,expected", [(12, 0.1), (13, 0.05), (16, 0.05), (17, 0.0)])
+    def test_brevity_thresholds(self, words, expected):
+        hook = {"text": " ".join(["word"] * words), "urls": []}
+        assert helpers.score_hook(hook, {})["brevity"] == pytest.approx(expected)
+
+    @pytest.mark.parametrize("urls,expected", [(0, 0.0), (1, 0.0), (2, 0.05), (3, 0.1)])
+    def test_multi_link_steps(self, urls, expected):
+        hook = {"text": "short hook", "urls": ["u"] * urls}
+        assert helpers.score_hook(hook, {})["multi_link"] == pytest.approx(expected)
+
+    @pytest.mark.parametrize("shared,expected", [(0, 0.0), (1, -0.2), (2, -0.4)])
+    def test_repetition_penalty_scales_per_shared_domain(self, shared, expected):
+        domains = ["science", "history"]
+        hook = {"text": "short hook", "urls": [],
+                "tags": {"domain": domains, "tone": None, "low_confidence": False}}
+        prev = set(domains[:shared])
+        assert helpers.score_hook(hook, {}, prev_domains=prev)["repetition_penalty"] == pytest.approx(expected)
+
+    def test_freshness_is_passed_through_untouched(self):
+        hook = {"text": "short hook", "urls": []}
+        assert helpers.score_hook(hook, {}, freshness_bonus=0.1)["freshness"] == pytest.approx(0.1)
+        assert helpers.score_hook(hook, {})["freshness"] == pytest.approx(0.0)

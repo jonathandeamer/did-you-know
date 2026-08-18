@@ -524,3 +524,90 @@ class TestMain:
         captured = capsys.readouterr()
         assert result == 1
         assert "Something went wrong with the fact-fetching" in captured.out
+
+
+class TestScorePersistenceAcrossCalls:
+    """Pin the candidate_score / served_score distinction.
+
+    CLAUDE.md draws a careful line: candidate_score is rewritten on every
+    next_hook() call and may be stale, while served_score is written once at
+    the moment of serving and is never overwritten — it is the definitive
+    record of why that hook was chosen. Nothing previously called next_hook()
+    twice, so neither half of that contract was pinned.
+    """
+
+    NOW = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
+
+    def _store(self):
+        def hook(text, domain):
+            return {"text": text, "urls": [], "returned": False,
+                    "tags": {"domain": [domain], "tone": "straight",
+                             "low_confidence": False}}
+
+        return {
+            "collections": [
+                {
+                    "date": "2026-02-24",
+                    "fetched_at": "2026-02-24T12:00:00Z",
+                    "hooks": [
+                        hook("science hook", "science"),
+                        hook("history hook", "history"),
+                        hook("art hook", "art"),
+                    ],
+                }
+            ]
+        }
+
+    def _hooks(self, store):
+        return store["collections"][0]["hooks"]
+
+    def test_served_score_is_never_overwritten_by_a_later_call(self, monkeypatch):
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: self.NOW)
+        store = self._store()
+
+        serve_hook.next_hook(store, {"domain": {"science": 1}})
+        science = self._hooks(store)[0]
+        assert science["returned"] is True
+        first = dict(science["served_score"])
+
+        # A second call with different preferences serves a different hook.
+        serve_hook.next_hook(store, {"domain": {"art": 1, "history": -1}})
+        assert self._hooks(store)[2]["returned"] is True
+
+        assert science["served_score"] == first
+
+    def test_candidate_score_is_recomputed_on_each_call(self, monkeypatch):
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: self.NOW)
+        store = self._store()
+
+        serve_hook.next_hook(store, {"domain": {"science": 1}})
+        history = self._hooks(store)[1]
+        assert history["candidate_score"]["domain"] == 0
+
+        # history is still unserved, so its candidate_score must reflect the
+        # new preferences rather than the ones from the first call.
+        serve_hook.next_hook(store, {"domain": {"art": 1, "history": -1}})
+        assert history["returned"] is False
+        assert history["candidate_score"]["domain"] == -1
+
+    def test_returned_hooks_are_not_rescored(self, monkeypatch):
+        """A served hook is skipped by later calls, so its candidate_score
+        keeps the value from the call that served it — the documented
+        staleness."""
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: self.NOW)
+        store = self._store()
+
+        serve_hook.next_hook(store, {"domain": {"science": 1}})
+        science = self._hooks(store)[0]
+        stale = dict(science["candidate_score"])
+        assert stale["domain"] == 1
+
+        serve_hook.next_hook(store, {"domain": {"science": -3, "art": 1}})
+        assert science["candidate_score"] == stale
+
+    def test_served_score_matches_the_candidate_score_that_won(self, monkeypatch):
+        monkeypatch.setattr(serve_hook, "now_utc", lambda: self.NOW)
+        store = self._store()
+        serve_hook.next_hook(store, {"domain": {"science": 1}})
+        science = self._hooks(store)[0]
+        assert science["served_score"] == science["candidate_score"]
