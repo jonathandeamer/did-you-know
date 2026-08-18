@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import random
 import sys
-import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from helpers import (
     collect_hooks,
+    display_url,
     last_served_domains,
     load_prefs,
     load_store,
@@ -83,7 +83,7 @@ def ensure_fresh(store: dict) -> None:
 def format_hook(hook: dict) -> str:
     """Format a hook with prefix, trailing '?', and one URL per line."""
     text = hook.get("text", "")
-    urls = [urllib.parse.unquote(url) for url in hook.get("urls", [])]
+    urls = [display_url(url) for url in hook.get("urls", [])]
     message = f"{MSG_PREFIX}{text}"
     if not message.endswith(MSG_SUFFIX):
         message += MSG_SUFFIX
