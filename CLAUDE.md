@@ -87,6 +87,7 @@ The entry point `scripts/dyk.py` is a thin shim that delegates to `scripts/serve
 
 6. **Utility Functions** (`helpers.py`)
    - `title_to_url()`: Converts article titles to Wikipedia URLs with proper URL encoding
+   - `display_url()`: Decodes a percent-encoded URL for display while leaving `?`, `#` and `%` escaped, so titles containing those characters produce links that resolve
    - `retry_with_backoff()`: Generic exponential backoff retry wrapper
    - `now_utc()`, `to_iso_z()`, `parse_iso()`: ISO 8601 timestamp helpers
 
@@ -219,7 +220,7 @@ docs: clarify cache structure in README
 
 ## Constants & Configuration
 
-- `helpers.py`: `API_URL`, `DATA_PATH`, `PREFS_PATH`, `MAX_HOOK_AGE_DAYS`, `REFRESH_INTERVAL`, `CHECK_COOLDOWN`, regex patterns (`RE_HOOK_LINE`, `RE_LINK`, `RE_BOLD_SECTION`), timestamp helpers
+- `helpers.py`: `API_URL`, `DATA_PATH`, `PREFS_PATH`, `MAX_HOOK_AGE_DAYS`, `REFRESH_INTERVAL`, `CHECK_COOLDOWN`, regex patterns (`RE_HOOK_LINE`, `RE_LINK`, `RE_BOLD_SECTION`, `RE_PCT_RUN`), `DISPLAY_RESERVED`, timestamp helpers
 - `serve_hook.py`: `MSG_PREFIX`, `MSG_SUFFIX`, `MSG_URL_SEPARATOR`, `MSG_BODY_SEPARATOR`
 
 ## Common Development Tasks

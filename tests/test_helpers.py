@@ -129,6 +129,50 @@ class TestTitleToUrl:
         assert url == "https://en.wikipedia.org/wiki/C%2B%2B_%28programming_language%29"
 
 
+class TestDisplayUrl:
+    def test_decodes_safe_percent_escapes(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/C%2B%2B_%28programming_language%29")
+            == "https://en.wikipedia.org/wiki/C++_(programming_language)"
+        )
+
+    def test_decodes_multibyte_utf8_escapes(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/Caf%C3%A9")
+            == "https://en.wikipedia.org/wiki/Café"
+        )
+
+    def test_keeps_question_mark_encoded(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/Um%2C_Jennifer%3F")
+            == "https://en.wikipedia.org/wiki/Um,_Jennifer%3F"
+        )
+
+    def test_keeps_hash_encoded(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/C%23")
+            == "https://en.wikipedia.org/wiki/C%23"
+        )
+
+    def test_keeps_percent_encoded(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/100%25_%28album%29")
+            == "https://en.wikipedia.org/wiki/100%25_(album)"
+        )
+
+    def test_decodes_safe_chars_within_run_containing_reserved_char(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/Caf%C3%A9%3F")
+            == "https://en.wikipedia.org/wiki/Café%3F"
+        )
+
+    def test_leaves_url_without_escapes_unchanged(self):
+        assert (
+            helpers.display_url("https://en.wikipedia.org/wiki/Albert_Einstein")
+            == "https://en.wikipedia.org/wiki/Albert_Einstein"
+        )
+
+
 class TestParseIso:
     def test_parses_z_suffix(self):
         result = helpers.parse_iso("2026-02-24T12:00:00Z")
@@ -289,6 +333,18 @@ Not a hook
         legacy_url = "https://en.wikipedia.org/wiki/C++_(programming_language)"
         hooks = helpers.collect_hooks(exclude_urls={legacy_url})
         assert hooks == []
+
+    def test_dedupes_title_containing_question_mark_across_refreshes(self, monkeypatch):
+        wikitext = (
+            "<!--Hooks-->\n"
+            "* ... that '''[[Um, Jennifer?]]''' is a film?\n"
+            "<!--HooksEnd-->"
+        )
+        monkeypatch.setattr(helpers, "fetch_wikitext", lambda: wikitext)
+        first = helpers.collect_hooks()
+        assert len(first) == 1
+        # Feeding the stored URLs back in must suppress the same hook next time.
+        assert helpers.collect_hooks(exclude_urls=set(first[0]["urls"])) == []
 
 
 class TestStoredUrls:

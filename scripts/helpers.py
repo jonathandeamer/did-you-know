@@ -55,6 +55,32 @@ def title_to_url(title: str) -> str:
     )
 
 
+# Runs of percent-escapes, decoded together so multi-byte UTF-8 survives.
+RE_PCT_RUN = re.compile(r"(?:%[0-9A-Fa-f]{2})+")
+# Characters that must stay percent-encoded in a displayed URL: '?' and '#' are
+# URL delimiters (a bare '?' truncates the path and 404s), and a literal '%'
+# would corrupt the remaining escapes.
+DISPLAY_RESERVED = "?#%"
+
+
+def display_url(url: str) -> str:
+    """Decode a percent-encoded URL for display, keeping delimiters encoded.
+
+    Wikipedia titles may legitimately contain '?', '#' or '%' (e.g. 'Um,
+    Jennifer?'). Fully unquoting those turns valid path characters into URL
+    delimiters, producing links that 404. Escapes are decoded per run (so
+    multi-byte UTF-8 survives), then any reserved character is re-encoded.
+    """
+
+    def _decode(match: re.Match[str]) -> str:
+        decoded = urllib.parse.unquote(match.group(0))
+        return "".join(
+            urllib.parse.quote(ch) if ch in DISPLAY_RESERVED else ch for ch in decoded
+        )
+
+    return RE_PCT_RUN.sub(_decode, url)
+
+
 def retry_with_backoff(func: Callable[[], _T], retries: int = 3, backoff: float = 2.0) -> _T:
     """Retry a function with exponential backoff between attempts."""
     last_exc = None

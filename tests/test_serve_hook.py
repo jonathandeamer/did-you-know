@@ -51,6 +51,14 @@ class TestFormatHook:
         )
 
 
+    def test_keeps_question_mark_encoded_for_display(self):
+        hook = {"text": "a film exists", "urls": ["https://en.wikipedia.org/wiki/Um%2C_Jennifer%3F"]}
+        assert serve_hook.format_hook(hook) == (
+            "Did you know that a film exists?\n\n"
+            "https://en.wikipedia.org/wiki/Um,_Jennifer%3F"
+        )
+
+
 class TestEnsureFresh:
     def test_noop_when_recent_fetch(self, monkeypatch):
         store = make_store(date="2026-02-24", fetched_at="2026-02-24T10:00:00Z")
