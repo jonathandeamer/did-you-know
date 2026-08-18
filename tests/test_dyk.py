@@ -118,7 +118,6 @@ class TestBackwardsCompatibility:
         """Error output must be the exact error message on its own line."""
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("network down")))
 
@@ -147,7 +146,6 @@ class TestBackwardsCompatibility:
         """main() must return 1 on unrecoverable error."""
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
         assert dyk.main() == 1

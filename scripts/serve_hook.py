@@ -15,9 +15,9 @@ from helpers import (
     load_prefs,
     load_store,
     now_utc,
+    refresh_collections,
     save_store,
     score_hook,
-    refresh_collections,
     to_iso_z,
 )
 

@@ -62,7 +62,6 @@ class TestFormatHook:
 class TestEnsureFresh:
     def test_noop_when_recent_fetch(self, monkeypatch):
         store = make_store(date="2026-02-24", fetched_at="2026-02-24T10:00:00Z")
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 20, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 20, 0, 0, tzinfo=timezone.utc))
 
         called = {"collect": 0}
@@ -72,7 +71,6 @@ class TestEnsureFresh:
 
     def test_appends_new_day_and_saves(self, monkeypatch):
         store = make_store()
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(
             helpers,
@@ -87,7 +85,6 @@ class TestEnsureFresh:
 
     def test_fetch_failure_uses_existing_cache(self, monkeypatch):
         store = make_store()
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
 
         def explode(**_kwargs):
@@ -100,7 +97,6 @@ class TestEnsureFresh:
 
     def test_fetch_failure_without_cache_raises(self, monkeypatch):
         store = {"collections": []}
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
 
         def explode(**_kwargs):
@@ -112,7 +108,6 @@ class TestEnsureFresh:
 
     def test_does_not_append_empty_collection(self, monkeypatch):
         store = make_store()
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: [])
 
@@ -122,7 +117,6 @@ class TestEnsureFresh:
     def test_sets_last_checked_at_on_success(self, monkeypatch):
         """ensure_fresh sets last_checked_at when new hooks are fetched."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = make_store()
         monkeypatch.setattr(
@@ -138,7 +132,6 @@ class TestEnsureFresh:
     def test_sets_last_checked_at_on_all_duplicates(self, monkeypatch):
         """ensure_fresh sets last_checked_at even when all hooks are duplicates."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = make_store()
         # collect_hooks returns empty (all duplicates)
@@ -152,7 +145,6 @@ class TestEnsureFresh:
     def test_sets_last_checked_at_on_fetch_failure(self, monkeypatch):
         """ensure_fresh sets last_checked_at even on fetch failure with existing cache."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = make_store()
 
@@ -169,7 +161,6 @@ class TestEnsureFresh:
         """ensure_fresh must add new hook URLs to seen_urls so trim_store
         cannot cause them to be re-fetched on a later refresh."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = make_store()
         monkeypatch.setattr(
@@ -188,7 +179,6 @@ class TestEnsureFresh:
         """URLs from an expired collection must still appear in stored_urls,
         preventing Wikipedia from re-serving a hook the user has already seen."""
         now = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
 
         # One expired collection (9 days ago — will be trimmed) and one recent.
@@ -409,7 +399,6 @@ class TestNextHook:
         """next_hook writes returned_at timestamp to the served hook."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
-        monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = {
             "collections": [
                 {"date": "2026-02-24", "hooks": [{"text": "fact", "urls": [], "returned": False, "tags": None}]}
@@ -422,7 +411,6 @@ class TestNextHook:
         """next_hook writes candidate_score to every evaluated hook, served or not."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
-        monkeypatch.setattr(helpers, "now_utc", lambda: now)
         long_text = " ".join(["word"] * 20)
         store = {
             "collections": [
@@ -443,7 +431,6 @@ class TestNextHook:
         """next_hook writes served_score breakdown to the served hook."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
-        monkeypatch.setattr(helpers, "now_utc", lambda: now)
         store = {
             "collections": [
                 {"date": "2026-02-24", "fetched_at": "2026-02-24T12:00:00Z",
@@ -465,7 +452,6 @@ class TestNextHook:
         """Hooks sharing the last served domain incur a flat −0.2 repetition penalty per tag."""
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
-        monkeypatch.setattr(helpers, "now_utc", lambda: now)
         prefs = {"domain": {"science": 1, "history": 1}, "tone": {}}
         store = {
             "collections": [
@@ -501,7 +487,6 @@ class TestMain:
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         now = datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "now_utc", lambda: now)
         monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("network down")))
 
