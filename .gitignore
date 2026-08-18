@@ -32,12 +32,14 @@
 
 # Tests
 !tests/
+!tests/conftest.py
 !tests/test_dyk.py
 !tests/test_helpers.py
 !tests/test_serve_hook.py
 !tests/test_fetch_hooks.py
 !tests/test_write_tags.py
 !tests/test_prefs.py
+!tests/test_network_guard.py
 
 # References
 !references/
