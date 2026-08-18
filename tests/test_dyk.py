@@ -53,8 +53,9 @@ class TestBackwardsCompatibility:
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         monkeypatch.setattr(helpers, "PREFS_PATH", tmp_path / "dyk-prefs.json")  # does not exist
         monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(
-            serve_hook,
+            helpers,
             "collect_hooks",
             lambda **_kwargs: [{"text": "a fact", "urls": ["https://en.wikipedia.org/wiki/Foo"], "returned": False}],
         )
@@ -72,8 +73,9 @@ class TestBackwardsCompatibility:
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(
-            serve_hook,
+            helpers,
             "collect_hooks",
             lambda **_kwargs: [{"text": "the shortest war lasted 38 minutes", "urls": ["https://en.wikipedia.org/wiki/Anglo-Zanzibar_War"], "returned": False}],
         )
@@ -103,7 +105,7 @@ class TestBackwardsCompatibility:
         }
         data_path.write_text(json.dumps(store), encoding="utf-8")
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 1, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 1, 0, tzinfo=timezone.utc))
 
         result = dyk.main()
         captured = capsys.readouterr()
@@ -115,8 +117,8 @@ class TestBackwardsCompatibility:
         """Error output must be the exact error message on its own line."""
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
-        monkeypatch.setattr(serve_hook, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("network down")))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("network down")))
 
         result = dyk.main()
         captured = capsys.readouterr()
@@ -131,8 +133,9 @@ class TestBackwardsCompatibility:
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(
-            serve_hook,
+            helpers,
             "collect_hooks",
             lambda **_kwargs: [{"text": "fact", "urls": [], "returned": False}],
         )
@@ -142,8 +145,8 @@ class TestBackwardsCompatibility:
         """main() must return 1 on unrecoverable error."""
         data_path = tmp_path / "dyk.json"
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
-        monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
-        monkeypatch.setattr(serve_hook, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "collect_hooks", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
         assert dyk.main() == 1
 
     # --- Cache schema forwards-read ---
@@ -164,6 +167,7 @@ class TestBackwardsCompatibility:
         data_path.write_text(json.dumps(old_cache), encoding="utf-8")
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 20, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 20, 0, 0, tzinfo=timezone.utc))
 
         result = dyk.main()
         captured = capsys.readouterr()
@@ -201,8 +205,9 @@ class TestBackwardsCompatibility:
         data_path.write_text(json.dumps(old_cache), encoding="utf-8")
         monkeypatch.setattr(helpers, "DATA_PATH", data_path)
         monkeypatch.setattr(serve_hook, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
+        monkeypatch.setattr(helpers, "now_utc", lambda: datetime(2026, 2, 24, 12, 0, 0, tzinfo=timezone.utc))
         monkeypatch.setattr(
-            serve_hook,
+            helpers,
             "collect_hooks",
             lambda **_kwargs: [
                 {

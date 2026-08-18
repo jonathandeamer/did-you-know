@@ -52,7 +52,7 @@ The entry point `scripts/dyk.py` is a thin shim that delegates to `scripts/serve
 ### Scripts
 
 - **`scripts/helpers.py`** — Shared utilities: text parsing, MediaWiki API, cache management, timestamps. No I/O side effects at import time.
-- **`scripts/serve_hook.py`** — Refresh and serving logic (`ensure_fresh`, `next_hook`, `main`). Imports from `helpers`.
+- **`scripts/serve_hook.py`** — Serving logic (`ensure_fresh`, `next_hook`, `main`). Imports from `helpers`.
 - **`scripts/dyk.py`** — Backwards-compatible shim; re-exports `main` from `serve_hook`.
 - **`scripts/fetch_hooks.py`** — Standalone script for pre-fetching hooks into the cache (used by cron/automation).
 - **`scripts/write_tags.py`** — Applies subject/tone tags from a JSON file into the cache.
@@ -74,9 +74,10 @@ The entry point `scripts/dyk.py` is a thin shim that delegates to `scripts/serve
    - `load_store()`: Loads JSON cache (gracefully handles missing/corrupted files)
    - `save_store()`: Persists cache to disk with UTF-8 encoding
    - `trim_store()`: Drops collections fetched 8 or more days ago (configurable via `MAX_HOOK_AGE_DAYS`)
+   - `refresh_collections()`: Shared refresh routine behind `serve_hook.ensure_fresh()` and `fetch_hooks.fetch_and_stage()` — fetches new hooks when due, appends them as a new collection, and maintains the `seen_urls` history across trims
 
 4. **Refresh & Serving Logic** (`serve_hook.py`)
-   - `ensure_fresh()`: Checks if refresh needed (every 12-24 hours via `REFRESH_INTERVAL`), fetches new hooks if needed, skips appending empty collections
+   - `ensure_fresh()`: Thin wrapper over `helpers.refresh_collections()` — refreshes when needed (every 12-24 hours via `REFRESH_INTERVAL`), skips appending empty collections
    - `next_hook(store, prefs)`: Scores all unreturned hooks and serves the highest-scoring one. Priority: score desc → newest collection → shortest text → random. Writes `returned_at` and `served_score` to the winning hook; writes `candidate_score` to every evaluated hook (see Score Storage below).
    - `refresh_due()`: Determines if cache refresh is needed based on timestamp
 

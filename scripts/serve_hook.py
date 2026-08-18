@@ -10,18 +10,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from helpers import (
-    collect_hooks,
     display_url,
     last_served_domains,
     load_prefs,
     load_store,
     now_utc,
+    refresh_collections,
     save_store,
     score_hook,
-    stored_urls,
     to_iso_z,
-    trim_store,
-    refresh_due,
 )
 
 # Output format constants.
@@ -33,51 +30,7 @@ MSG_BODY_SEPARATOR = "\n\n"
 
 def ensure_fresh(store: dict) -> None:
     """Ensure a fresh collection exists, refreshing from the network if needed."""
-    now = now_utc()
-    collections = store.setdefault("collections", [])
-    if not refresh_due(store, now):
-        return
-    try:
-        hooks = collect_hooks(exclude_urls=stored_urls(store))
-    except Exception as exc:
-        print(f"DYK refresh failed: {exc}", file=sys.stderr)
-        store["last_checked_at"] = to_iso_z(now)
-        if collections:
-            return
-        raise
-    store["last_checked_at"] = to_iso_z(now)
-    if not hooks:
-        # All hooks were duplicates of ones we already have.  DYK sets
-        # rotate once or twice per day, so the template may not have
-        # changed yet.  By leaving fetched_at stale, refresh_due stays
-        # True and we re-check on the next invocation after cooldown.
-        return
-    # Backfill seen_urls from existing collections before trimming so that
-    # legacy caches (written before this field existed) don't lose history
-    # when trim_store removes the oldest entry.
-    seen = store.setdefault("seen_urls", [])
-    seen_set = set(seen)
-    for col in collections:
-        for hook in col.get("hooks", []):
-            for url in hook.get("urls", []):
-                if url not in seen_set:
-                    seen.append(url)
-                    seen_set.add(url)
-    collections.append(
-        {
-            "date": now.date().isoformat(),
-            "fetched_at": to_iso_z(now),
-            "hooks": hooks,
-        }
-    )
-    # Accumulate the new hooks' URLs in the persistent history so trim_store
-    # cannot cause already-seen hooks to be re-fetched from Wikipedia.
-    for hook in hooks:
-        for url in hook.get("urls", []):
-            if url not in seen_set:
-                seen.append(url)
-                seen_set.add(url)
-    trim_store(store, now)
+    refresh_collections(store)
 
 
 def format_hook(hook: dict) -> str:
